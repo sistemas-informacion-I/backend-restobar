@@ -1,9 +1,9 @@
-package org.restobar.gaira.acceso.entity;
+package org.restobar.gaira.modulo_acceso.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import org.restobar.gaira.operaciones.entity.EmpleadoSucursal;
+import org.restobar.gaira.modulo_operaciones.entity.EmpleadoSucursal;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

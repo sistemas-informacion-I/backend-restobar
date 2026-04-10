@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.auth;
+package org.restobar.gaira.modulo_acceso.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 

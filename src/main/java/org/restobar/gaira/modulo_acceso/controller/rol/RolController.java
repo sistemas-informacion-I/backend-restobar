@@ -1,12 +1,12 @@
-package org.restobar.gaira.acceso.controller.rol;
+package org.restobar.gaira.modulo_acceso.controller.rol;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.permiso.AssignPermissionRequest;
-import org.restobar.gaira.acceso.dto.rol.AssignRoleRequest;
-import org.restobar.gaira.acceso.dto.rol.RolRequest;
-import org.restobar.gaira.acceso.dto.rol.RolResponse;
-import org.restobar.gaira.acceso.service.rol.RolService;
+import org.restobar.gaira.modulo_acceso.dto.permiso.AssignPermissionRequest;
+import org.restobar.gaira.modulo_acceso.dto.rol.AssignRoleRequest;
+import org.restobar.gaira.modulo_acceso.dto.rol.RolRequest;
+import org.restobar.gaira.modulo_acceso.dto.rol.RolResponse;
+import org.restobar.gaira.modulo_acceso.service.rol.RolService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

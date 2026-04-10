@@ -1,12 +1,12 @@
-package org.restobar.gaira.acceso.service.sesion;
+package org.restobar.gaira.modulo_acceso.service.sesion;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.sesion.SesionResponse;
-import org.restobar.gaira.acceso.entity.Sesion;
-import org.restobar.gaira.acceso.repository.SesionRepository;
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.dto.sesion.SesionResponse;
+import org.restobar.gaira.modulo_acceso.entity.Sesion;
+import org.restobar.gaira.modulo_acceso.repository.SesionRepository;
+import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

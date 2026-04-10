@@ -1,6 +1,6 @@
-package org.restobar.gaira.acceso.repository;
+package org.restobar.gaira.modulo_acceso.repository;
 
-import org.restobar.gaira.acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

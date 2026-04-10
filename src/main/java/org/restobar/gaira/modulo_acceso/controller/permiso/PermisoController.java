@@ -1,10 +1,10 @@
-package org.restobar.gaira.acceso.controller.permiso;
+package org.restobar.gaira.modulo_acceso.controller.permiso;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.permiso.PermisoRequest;
-import org.restobar.gaira.acceso.dto.permiso.PermisoResponse;
-import org.restobar.gaira.acceso.service.permiso.PermisoService;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoRequest;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoResponse;
+import org.restobar.gaira.modulo_acceso.service.permiso.PermisoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

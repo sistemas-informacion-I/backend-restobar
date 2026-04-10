@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.rol;
+package org.restobar.gaira.modulo_acceso.dto.rol;
 
 import jakarta.validation.constraints.NotNull;
 

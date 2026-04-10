@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.usuario;
+package org.restobar.gaira.modulo_acceso.dto.usuario;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +16,6 @@ public record UsuarioResponse(
         String estadoAcceso,
         LocalDateTime fechaRegistro,
         Boolean activo,
-        java.util.List<org.restobar.gaira.acceso.dto.rol.RolResponse> roles
+        java.util.List<org.restobar.gaira.modulo_acceso.dto.rol.RolResponse> roles
 ) {
 }

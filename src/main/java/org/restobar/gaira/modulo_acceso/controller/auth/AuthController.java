@@ -1,13 +1,13 @@
-package org.restobar.gaira.acceso.controller.auth;
+package org.restobar.gaira.modulo_acceso.controller.auth;
 
 import java.util.Map;
 
-import org.restobar.gaira.acceso.dto.auth.AuthLoginRequest;
-import org.restobar.gaira.acceso.dto.auth.AuthRegisterRequest;
-import org.restobar.gaira.acceso.dto.auth.AuthResponse;
-import org.restobar.gaira.acceso.dto.auth.RefreshTokenRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthLoginRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegisterRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthResponse;
+import org.restobar.gaira.modulo_acceso.dto.auth.RefreshTokenRequest;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
-import org.restobar.gaira.acceso.service.auth.AuthService;
+import org.restobar.gaira.modulo_acceso.service.auth.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

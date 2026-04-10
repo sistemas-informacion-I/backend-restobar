@@ -1,16 +1,16 @@
-package org.restobar.gaira.acceso.service.usuario;
+package org.restobar.gaira.modulo_acceso.service.usuario;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.usuario.UsuarioRequest;
-import org.restobar.gaira.acceso.dto.usuario.UsuarioResponse;
-import org.restobar.gaira.acceso.entity.Rol;
-import org.restobar.gaira.acceso.entity.RolUsuario;
-import org.restobar.gaira.acceso.entity.Usuario;
-import org.restobar.gaira.acceso.repository.RolRepository;
-import org.restobar.gaira.acceso.repository.RolUsuarioRepository;
-import org.restobar.gaira.acceso.repository.UsuarioRepository;
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioRequest;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
+import org.restobar.gaira.modulo_acceso.entity.Rol;
+import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.repository.RolRepository;
+import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
+import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
+import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;

@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.auditoria;
+package org.restobar.gaira.modulo_acceso.dto.auditoria;
 
 import java.time.LocalDateTime;
 import java.util.Map;

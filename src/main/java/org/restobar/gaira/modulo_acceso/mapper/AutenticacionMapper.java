@@ -1,14 +1,14 @@
-package org.restobar.gaira.acceso.mapper;
+package org.restobar.gaira.modulo_acceso.mapper;
 
-import org.restobar.gaira.acceso.dto.auditoria.LogAuditoriaResponse;
-import org.restobar.gaira.acceso.dto.permiso.PermisoResponse;
-import org.restobar.gaira.acceso.dto.rol.RolResponse;
-import org.restobar.gaira.acceso.dto.sesion.SesionResponse;
-import org.restobar.gaira.acceso.dto.usuario.ClienteResponse;
-import org.restobar.gaira.acceso.dto.usuario.EmpleadoResponse;
-import org.restobar.gaira.acceso.dto.usuario.ProveedorResponse;
-import org.restobar.gaira.acceso.dto.usuario.UsuarioResponse;
-import org.restobar.gaira.acceso.entity.*;
+import org.restobar.gaira.modulo_acceso.dto.auditoria.LogAuditoriaResponse;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoResponse;
+import org.restobar.gaira.modulo_acceso.dto.rol.RolResponse;
+import org.restobar.gaira.modulo_acceso.dto.sesion.SesionResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.ClienteResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.EmpleadoResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.ProveedorResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
+import org.restobar.gaira.modulo_acceso.entity.*;
 
 public final class AutenticacionMapper {
 

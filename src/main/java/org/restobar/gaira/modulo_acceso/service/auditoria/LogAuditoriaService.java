@@ -1,13 +1,13 @@
-package org.restobar.gaira.acceso.service.auditoria;
+package org.restobar.gaira.modulo_acceso.service.auditoria;
 
 import java.util.List;
 import java.util.Map;
 
-import org.restobar.gaira.acceso.dto.auditoria.LogAuditoriaResponse;
-import org.restobar.gaira.acceso.entity.LogAuditoria;
-import org.restobar.gaira.acceso.entity.Usuario;
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
-import org.restobar.gaira.acceso.repository.LogAuditoriaRepository;
+import org.restobar.gaira.modulo_acceso.dto.auditoria.LogAuditoriaResponse;
+import org.restobar.gaira.modulo_acceso.entity.LogAuditoria;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.repository.LogAuditoriaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;

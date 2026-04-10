@@ -1,9 +1,9 @@
-package org.restobar.gaira.acceso.controller.sesion;
+package org.restobar.gaira.modulo_acceso.controller.sesion;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.sesion.SesionResponse;
-import org.restobar.gaira.acceso.service.sesion.SesionService;
+import org.restobar.gaira.modulo_acceso.dto.sesion.SesionResponse;
+import org.restobar.gaira.modulo_acceso.service.sesion.SesionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

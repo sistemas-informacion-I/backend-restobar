@@ -1,9 +1,9 @@
-package org.restobar.gaira.acceso.controller.auditoria;
+package org.restobar.gaira.modulo_acceso.controller.auditoria;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.auditoria.LogAuditoriaResponse;
-import org.restobar.gaira.acceso.service.auditoria.LogAuditoriaService;
+import org.restobar.gaira.modulo_acceso.dto.auditoria.LogAuditoriaResponse;
+import org.restobar.gaira.modulo_acceso.service.auditoria.LogAuditoriaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

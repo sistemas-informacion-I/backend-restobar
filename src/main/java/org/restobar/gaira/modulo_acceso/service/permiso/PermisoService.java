@@ -1,12 +1,12 @@
-package org.restobar.gaira.acceso.service.permiso;
+package org.restobar.gaira.modulo_acceso.service.permiso;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.permiso.PermisoRequest;
-import org.restobar.gaira.acceso.dto.permiso.PermisoResponse;
-import org.restobar.gaira.acceso.entity.Permiso;
-import org.restobar.gaira.acceso.repository.PermisoRepository;
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoRequest;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoResponse;
+import org.restobar.gaira.modulo_acceso.entity.Permiso;
+import org.restobar.gaira.modulo_acceso.repository.PermisoRepository;
+import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.stereotype.Service;

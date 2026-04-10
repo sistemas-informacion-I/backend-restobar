@@ -1,6 +1,6 @@
-package org.restobar.gaira.acceso.dto.auth;
+package org.restobar.gaira.modulo_acceso.dto.auth;
 
-import org.restobar.gaira.acceso.dto.usuario.UsuarioResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
 import java.util.List;
 
 public record AuthResponse(

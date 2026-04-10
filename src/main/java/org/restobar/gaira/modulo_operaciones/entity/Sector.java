@@ -1,4 +1,4 @@
-package org.restobar.gaira.operaciones.entity;
+package org.restobar.gaira.modulo_operaciones.entity;
 
 import jakarta.persistence.*;
 //import jakarta.validation.constraints.*;

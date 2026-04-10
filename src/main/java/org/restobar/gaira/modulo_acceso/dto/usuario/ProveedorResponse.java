@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.usuario;
+package org.restobar.gaira.modulo_acceso.dto.usuario;
 
 public record ProveedorResponse(
         Long idProveedor,

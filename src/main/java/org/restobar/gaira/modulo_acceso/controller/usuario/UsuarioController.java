@@ -1,10 +1,10 @@
-package org.restobar.gaira.acceso.controller.usuario;
+package org.restobar.gaira.modulo_acceso.controller.usuario;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.usuario.UsuarioRequest;
-import org.restobar.gaira.acceso.dto.usuario.UsuarioResponse;
-import org.restobar.gaira.acceso.service.usuario.UsuarioService;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioRequest;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
+import org.restobar.gaira.modulo_acceso.service.usuario.UsuarioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;

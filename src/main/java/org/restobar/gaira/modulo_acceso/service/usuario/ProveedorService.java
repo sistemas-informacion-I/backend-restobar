@@ -1,11 +1,11 @@
-package org.restobar.gaira.acceso.service.usuario;
+package org.restobar.gaira.modulo_acceso.service.usuario;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.usuario.ProveedorResponse;
-import org.restobar.gaira.acceso.entity.Proveedor;
-import org.restobar.gaira.acceso.repository.ProveedorRepository;
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.dto.usuario.ProveedorResponse;
+import org.restobar.gaira.modulo_acceso.entity.Proveedor;
+import org.restobar.gaira.modulo_acceso.repository.ProveedorRepository;
+import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

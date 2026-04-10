@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.usuario;
+package org.restobar.gaira.modulo_acceso.dto.usuario;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

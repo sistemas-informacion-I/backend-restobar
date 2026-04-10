@@ -1,17 +1,17 @@
-package org.restobar.gaira.acceso.seed;
+package org.restobar.gaira.modulo_acceso.seed;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.entity.Permiso;
-import org.restobar.gaira.acceso.entity.Rol;
-import org.restobar.gaira.acceso.entity.RolPermiso;
-import org.restobar.gaira.acceso.entity.RolUsuario;
-import org.restobar.gaira.acceso.entity.Usuario;
-import org.restobar.gaira.acceso.repository.PermisoRepository;
-import org.restobar.gaira.acceso.repository.RolPermisoRepository;
-import org.restobar.gaira.acceso.repository.RolRepository;
-import org.restobar.gaira.acceso.repository.RolUsuarioRepository;
-import org.restobar.gaira.acceso.repository.UsuarioRepository;
+import org.restobar.gaira.modulo_acceso.entity.Permiso;
+import org.restobar.gaira.modulo_acceso.entity.Rol;
+import org.restobar.gaira.modulo_acceso.entity.RolPermiso;
+import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.repository.PermisoRepository;
+import org.restobar.gaira.modulo_acceso.repository.RolPermisoRepository;
+import org.restobar.gaira.modulo_acceso.repository.RolRepository;
+import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
+import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;

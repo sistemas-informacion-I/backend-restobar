@@ -1,9 +1,9 @@
-package org.restobar.gaira.acceso.controller.usuario;
+package org.restobar.gaira.modulo_acceso.controller.usuario;
 
 import java.util.List;
 
-import org.restobar.gaira.acceso.dto.usuario.EmpleadoResponse;
-import org.restobar.gaira.acceso.service.usuario.EmpleadoService;
+import org.restobar.gaira.modulo_acceso.dto.usuario.EmpleadoResponse;
+import org.restobar.gaira.modulo_acceso.service.usuario.EmpleadoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

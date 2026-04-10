@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.rol;
+package org.restobar.gaira.modulo_acceso.dto.rol;
 
 import java.time.LocalDateTime;
 
@@ -9,6 +9,6 @@ public record RolResponse(
         Integer nivelAcceso,
         Boolean activo,
         LocalDateTime fechaCreacion,
-        java.util.List<org.restobar.gaira.acceso.dto.permiso.PermisoResponse> permisos
+        java.util.List<org.restobar.gaira.modulo_acceso.dto.permiso.PermisoResponse> permisos
 ) {
 }

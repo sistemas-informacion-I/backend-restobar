@@ -1,8 +1,8 @@
-package org.restobar.gaira.operaciones.entity;
+package org.restobar.gaira.modulo_operaciones.entity;
 
 import java.time.LocalDate;
 
-import org.restobar.gaira.acceso.entity.Empleado;
+import org.restobar.gaira.modulo_acceso.entity.Empleado;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

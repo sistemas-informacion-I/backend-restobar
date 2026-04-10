@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.entity;
+package org.restobar.gaira.modulo_acceso.entity;
 
 import java.time.LocalDateTime;
 

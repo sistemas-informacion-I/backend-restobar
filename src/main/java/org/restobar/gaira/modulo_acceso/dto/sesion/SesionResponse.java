@@ -1,4 +1,4 @@
-package org.restobar.gaira.acceso.dto.sesion;
+package org.restobar.gaira.modulo_acceso.dto.sesion;
 
 import java.time.LocalDateTime;
 
