@@ -3,6 +3,7 @@ package org.restobar.gaira.exception;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Builder
 public record ApiErrorResponse(
@@ -10,6 +11,7 @@ public record ApiErrorResponse(
         int statusCode,
         String message,
         Object errors,
-        String path
+        String path,
+        Map<String, Object> metadata
 ) {
 }
