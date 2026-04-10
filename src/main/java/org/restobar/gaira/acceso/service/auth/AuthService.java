@@ -2,33 +2,37 @@ package org.restobar.gaira.acceso.service.auth;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.restobar.gaira.acceso.dto.auth.AuthLoginRequest;
 import org.restobar.gaira.acceso.dto.auth.AuthRegisterRequest;
 import org.restobar.gaira.acceso.dto.auth.AuthResponse;
 import org.restobar.gaira.acceso.dto.auth.RefreshTokenRequest;
-import org.restobar.gaira.acceso.entity.LogAuditoria;
 import org.restobar.gaira.acceso.entity.Rol;
 import org.restobar.gaira.acceso.entity.RolUsuario;
 import org.restobar.gaira.acceso.entity.Sesion;
 import org.restobar.gaira.acceso.entity.Usuario;
 import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
-import org.restobar.gaira.acceso.repository.LogAuditoriaRepository;
 import org.restobar.gaira.acceso.repository.RolRepository;
 import org.restobar.gaira.acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.acceso.repository.SesionRepository;
 import org.restobar.gaira.acceso.repository.UsuarioRepository;
+import org.restobar.gaira.acceso.service.auditoria.LogAuditoriaService;
+import org.restobar.gaira.exception.LockoutException;
 import org.restobar.gaira.security.jwt.JwtService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.RedisTemplate;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.LOCKED;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -40,16 +44,21 @@ import jakarta.servlet.http.HttpServletRequest;
 public class AuthService {
 
     private static final String ESTADO_HABILITADO = "HABILITADO";
-    private static final String ESTADO_BLOQUEADO = "BLOQUEADO";
     private static final String ESTADO_SUSPENDIDO = "SUSPENDIDO";
+    private static final String REDIS_LOCK_PREFIX = "lockout:";
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final RolUsuarioRepository rolUsuarioRepository;
     private final SesionRepository sesionRepository;
-    private final LogAuditoriaRepository logAuditoriaRepository;
+    private final LogAuditoriaService logAuditoriaService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    @Lazy
+    private AuthService self;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -57,23 +66,28 @@ public class AuthService {
     @Value("${auth.refresh-expiration-seconds}")
     private long refreshExpirationSeconds;
 
-    @Value("${auth.max-failed-attempts}")
+    @Value("${auth.max-failed-attempts:5}")
     private int maxFailedAttempts;
+
+    @Value("${auth.lockout-duration-minutes:3}")
+    private int lockoutDurationMinutes;
 
     public AuthService(UsuarioRepository usuarioRepository,
             RolRepository rolRepository,
             RolUsuarioRepository rolUsuarioRepository,
             SesionRepository sesionRepository,
-            LogAuditoriaRepository logAuditoriaRepository,
+            LogAuditoriaService logAuditoriaService,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            RedisTemplate<String, Object> redisTemplate) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.rolUsuarioRepository = rolUsuarioRepository;
         this.sesionRepository = sesionRepository;
-        this.logAuditoriaRepository = logAuditoriaRepository;
+        this.logAuditoriaService = logAuditoriaService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -125,7 +139,7 @@ public class AuthService {
         String refreshToken = UUID.randomUUID().toString();
 
         createSession(usuario, accessToken, refreshToken, httpRequest);
-        logAcceso(usuario, "usuario", "INSERT", httpRequest, "registro_exitoso");
+        logAuditoriaService.logAcceso(usuario, "usuario", "INSERT", httpRequest, "registro_exitoso");
 
         return new AuthResponse(
                 accessToken,
@@ -137,53 +151,56 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(AuthLoginRequest request, HttpServletRequest httpRequest) {
-        Usuario usuario = usuarioRepository.findActiveByUsernameWithAuthorities(request.username())
+        String username = request.username();
+        
+        // 1. Verificar bloqueo en Redis antes de cualquier otra cosa
+        Long ttl = redisTemplate.getExpire(REDIS_LOCK_PREFIX + username, TimeUnit.SECONDS);
+        if (ttl != null && ttl > 0) {
+            LocalDateTime lockedUntil = LocalDateTime.now().plusSeconds(ttl);
+            logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest, "cuenta_bloqueada_redis");
+            throw new LockoutException("Tu cuenta está temporalmente bloqueada.", lockedUntil);
+        }
+
+        Usuario usuario = usuarioRepository.findActiveByUsernameWithAuthorities(username)
                 .orElseThrow(() -> {
-                    logAcceso(null, "usuario", "EJECUTAR", httpRequest, "usuario_no_existe");
+                    logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest, "usuario_no_existe: " + username);
                     return new ResponseStatusException(UNAUTHORIZED, "Credenciales inválidas");
                 });
 
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
-            logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "usuario_inactivo");
+            logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "usuario_inactivo");
             throw new ResponseStatusException(FORBIDDEN, "Usuario inactivo");
         }
 
-        if (ESTADO_BLOQUEADO.equals(usuario.getEstadoAcceso())) {
-            logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "cuenta_bloqueada");
-            throw new ResponseStatusException(LOCKED, "Cuenta bloqueada");
-        }
-
         if (ESTADO_SUSPENDIDO.equals(usuario.getEstadoAcceso())) {
-            logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "cuenta_suspendida");
+            logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "cuenta_suspendida");
             throw new ResponseStatusException(FORBIDDEN, "Cuenta suspendida");
         }
 
         if (!passwordEncoder.matches(request.password(), usuario.getPasswordHash())) {
-            int intentos = usuario.getIntentosFallidos() == null ? 1 : usuario.getIntentosFallidos() + 1;
-            usuario.setIntentosFallidos(intentos);
+            int intentos = self.incrementarIntentos(usuario, maxFailedAttempts, lockoutDurationMinutes);
+            logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "credenciales_invalidas_intento_" + intentos);
 
             if (intentos >= maxFailedAttempts) {
-                usuario.setEstadoAcceso(ESTADO_BLOQUEADO);
+                // Bloquear en Redis si se supera el límite
+                LocalDateTime expireAt = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
+                redisTemplate.opsForValue().set(REDIS_LOCK_PREFIX + username, "LOCKED", lockoutDurationMinutes, TimeUnit.MINUTES);
+                throw new LockoutException("Has superado el límite de intentos. Cuenta bloqueada.", expireAt);
             }
 
-            usuarioRepository.save(usuario);
-            logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "credenciales_invalidas");
-            throw new ResponseStatusException(UNAUTHORIZED, "Credenciales inválidas");
+            throw new ResponseStatusException(UNAUTHORIZED, "Credenciales inválidas. Intento " + intentos + " de " + maxFailedAttempts);
         }
 
-        // Login exitoso: resetear intentos
-        usuario.setIntentosFallidos(0);
-        if (ESTADO_BLOQUEADO.equals(usuario.getEstadoAcceso())) {
-            usuario.setEstadoAcceso(ESTADO_HABILITADO);
-        }
-        usuarioRepository.save(usuario);
-
+        // Login exitoso: resetear intentos (DB) y asegurar que no hay bloqueo en Redis
+        self.resetearIntentos(usuario);
+        redisTemplate.delete(REDIS_LOCK_PREFIX + username);
+        
         ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = UUID.randomUUID().toString();
 
         createSession(usuario, accessToken, refreshToken, httpRequest);
-        logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "login_exitoso");
+        logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "login_exitoso");
 
         return new AuthResponse(
                 accessToken,
@@ -237,6 +254,32 @@ public class AuthService {
                 });
     }
 
+    // ─── Login Attempt Logic (Transaccional Independiente) ──────────────────────
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int incrementarIntentos(Usuario usuario, int maxIntentos, int durationMinutes) {
+        Usuario u = usuarioRepository.findById(usuario.getIdUsuario())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado para incrementar intentos"));
+
+        int intentos = (u.getIntentosFallidos() == null ? 0 : u.getIntentosFallidos()) + 1;
+        u.setIntentosFallidos(intentos);
+
+        // Ya no cambiamos el estadoAcceso ni fechaBloqueoFinal en la DB, lo maneja Redis.
+        // Pero mantenemos intentosFallidos para el historial.
+        usuarioRepository.saveAndFlush(u);
+        return intentos;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void resetearIntentos(Usuario usuario) {
+        Usuario u = usuarioRepository.findById(usuario.getIdUsuario())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado para resetear intentos"));
+        
+        u.setIntentosFallidos(0);
+        u.setEstadoAcceso(ESTADO_HABILITADO);
+        usuarioRepository.saveAndFlush(u);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private void createSession(Usuario usuario, String accessToken, String refreshToken, HttpServletRequest request) {
@@ -250,28 +293,6 @@ public class AuthService {
                 .userAgent(request.getHeader("User-Agent"))
                 .build();
         sesionRepository.save(sesion);
-    }
-
-    /**
-     * Registra un evento de acceso en log_auditoria.
-     * Reutiliza la tabla existente en la BD para registrar intentos de login.
-     */
-    private void logAcceso(Usuario usuario, String tabla, String operacion,
-            HttpServletRequest request, String descripcion) {
-        try {
-            LogAuditoria log = LogAuditoria.builder()
-                    .tabla(tabla)
-                    .operacion(operacion)
-                    .idRegistro(usuario != null ? String.valueOf(usuario.getIdUsuario()) : null)
-                    .usuario(usuario)
-                    .ipOrigen(extractIp(request))
-                    .userAgent(request.getHeader("User-Agent"))
-                    .datosNuevos(java.util.Map.of("resultado", descripcion))
-                    .build();
-            logAuditoriaRepository.save(log);
-        } catch (Exception e) {
-            // No romper el flujo principal si el log falla
-        }
     }
 
     private String extractIp(HttpServletRequest request) {
