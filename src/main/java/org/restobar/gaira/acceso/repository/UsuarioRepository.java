@@ -34,7 +34,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             left join fetch rp.permiso
             where u.username = :username
               and u.activo = true
-              and u.estadoAcceso = 'HABILITADO'
             """)
     Optional<Usuario> findActiveByUsernameWithAuthorities(@Param("username") String username);
 
