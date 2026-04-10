@@ -1,26 +1,57 @@
 package org.restobar.gaira.acceso.service.auditoria;
 
+import java.util.List;
+import java.util.Map;
+
 import org.restobar.gaira.acceso.dto.auditoria.LogAuditoriaResponse;
+import org.restobar.gaira.acceso.entity.LogAuditoria;
+import org.restobar.gaira.acceso.entity.Usuario;
+import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
 import org.restobar.gaira.acceso.repository.LogAuditoriaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
-import org.restobar.gaira.acceso.mapper.AutenticacionMapper;
 @Service
+@RequiredArgsConstructor
 public class LogAuditoriaService {
 
     private final LogAuditoriaRepository logAuditoriaRepository;
-
-    public LogAuditoriaService(LogAuditoriaRepository logAuditoriaRepository) {
-        this.logAuditoriaRepository = logAuditoriaRepository;
-    }
 
     @Transactional(readOnly = true)
     public List<LogAuditoriaResponse> latest() {
         return logAuditoriaRepository.findTop100ByOrderByFechaOperacionDesc().stream()
                 .map(AutenticacionMapper::toLogAuditoriaResponse)
                 .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void logAcceso(Usuario usuario, String tabla, String operacion,
+            HttpServletRequest request, String descripcion) {
+        try {
+            LogAuditoria log = LogAuditoria.builder()
+                    .tabla(tabla)
+                    .operacion(operacion)
+                    .idRegistro(usuario != null ? String.valueOf(usuario.getIdUsuario()) : null)
+                    .usuario(usuario)
+                    .ipOrigen(extractIp(request))
+                    .userAgent(request.getHeader("User-Agent"))
+                    .datosNuevos(Map.of("resultado", descripcion))
+                    .build();
+            logAuditoriaRepository.save(log);
+        } catch (Exception e) {
+            // No romper el flujo principal si el log falla
+        }
+    }
+
+    private String extractIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }
