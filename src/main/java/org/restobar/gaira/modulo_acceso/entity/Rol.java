@@ -50,7 +50,7 @@ public class Rol {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     @Builder.Default
-    @OneToMany(mappedBy = "rol", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rol", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<RolPermiso> rolesPermiso = new HashSet<>();
 
     @PrePersist

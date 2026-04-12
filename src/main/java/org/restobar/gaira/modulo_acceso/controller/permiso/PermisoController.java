@@ -2,7 +2,8 @@ package org.restobar.gaira.modulo_acceso.controller.permiso;
 
 import java.util.List;
 
-import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoRequest;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoCreate;
+import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoUpdate;
 import org.restobar.gaira.modulo_acceso.dto.permiso.PermisoResponse;
 import org.restobar.gaira.modulo_acceso.service.permiso.PermisoService;
 import org.springframework.http.HttpStatus;
@@ -43,14 +44,14 @@ public class PermisoController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('permissions:create')")
-    public ResponseEntity<PermisoResponse> create(@Valid @RequestBody PermisoRequest request) {
+    public ResponseEntity<PermisoResponse> create(@Valid @RequestBody PermisoCreate request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(permisoService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('permissions:update')")
     public ResponseEntity<PermisoResponse> update(@PathVariable Long id,
-            @Valid @RequestBody PermisoRequest request) {
+            @Valid @RequestBody PermisoUpdate request) {
         return ResponseEntity.ok(permisoService.update(id, request));
     }
 

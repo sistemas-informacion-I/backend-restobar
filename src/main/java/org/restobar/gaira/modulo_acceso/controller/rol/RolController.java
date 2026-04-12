@@ -2,10 +2,11 @@ package org.restobar.gaira.modulo_acceso.controller.rol;
 
 import java.util.List;
 
-import org.restobar.gaira.modulo_acceso.dto.permiso.AssignPermissionRequest;
-import org.restobar.gaira.modulo_acceso.dto.rol.AssignRoleRequest;
-import org.restobar.gaira.modulo_acceso.dto.rol.RolRequest;
+import org.restobar.gaira.modulo_acceso.dto.permiso.AssignPermission;
+import org.restobar.gaira.modulo_acceso.dto.rol.AssignRole;
+import org.restobar.gaira.modulo_acceso.dto.rol.RolCreate;
 import org.restobar.gaira.modulo_acceso.dto.rol.RolResponse;
+import org.restobar.gaira.modulo_acceso.dto.rol.RolUpdate;
 import org.restobar.gaira.modulo_acceso.service.rol.RolService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,16 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/roles")
+@RequiredArgsConstructor
 public class RolController {
 
     private final RolService rolService;
-
-    public RolController(RolService rolService) {
-        this.rolService = rolService;
-    }
 
     @GetMapping
     @PreAuthorize("hasAuthority('roles:read')")
@@ -45,13 +44,13 @@ public class RolController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('roles:create')")
-    public ResponseEntity<RolResponse> create(@Valid @RequestBody RolRequest request) {
+    public ResponseEntity<RolResponse> create(@Valid @RequestBody RolCreate request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(rolService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('roles:update')")
-    public ResponseEntity<RolResponse> update(@PathVariable Long id, @Valid @RequestBody RolRequest request) {
+    public ResponseEntity<RolResponse> update(@PathVariable Long id, @Valid @RequestBody RolUpdate request) {
         return ResponseEntity.ok(rolService.update(id, request));
     }
 
@@ -62,19 +61,17 @@ public class RolController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{idRol}/permisos")
+    @PostMapping("/{id}/permisos")
     @PreAuthorize("hasAuthority('roles:update')")
-    public ResponseEntity<Void> assignPermission(@PathVariable Long idRol,
-            @Valid @RequestBody AssignPermissionRequest request) {
-        rolService.assignPermission(idRol, request);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> assignPermission(@PathVariable Long id, @Valid @RequestBody AssignPermission request) {
+        rolService.assignPermission(id, request);
+        return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/usuarios/{idUsuario}")
-    @PreAuthorize("hasAuthority('roles:update')")
-    public ResponseEntity<Void> assignRoleToUser(@PathVariable Long idUsuario,
-            @Valid @RequestBody AssignRoleRequest request) {
+    @PostMapping("/usuarios/{idUsuario}/asignar-entidad")
+    @PreAuthorize("hasAuthority('users:update')")
+    public ResponseEntity<Void> assignRoleToUser(@PathVariable Long idUsuario, @Valid @RequestBody AssignRole request) {
         rolService.assignRoleToUser(idUsuario, request);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

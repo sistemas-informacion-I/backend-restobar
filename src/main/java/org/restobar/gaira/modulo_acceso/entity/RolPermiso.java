@@ -16,8 +16,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
 
 @Entity
 @Table(name = "rol_permiso", schema = "public")
@@ -31,14 +29,10 @@ public class RolPermiso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_permiso", nullable = false)
     private Permiso permiso;

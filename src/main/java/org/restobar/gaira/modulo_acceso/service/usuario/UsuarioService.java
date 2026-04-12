@@ -1,27 +1,34 @@
 package org.restobar.gaira.modulo_acceso.service.usuario;
 
 import java.util.List;
+import java.util.Map;
 
-import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioRequest;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioCreate;
 import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
+import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioUpdate;
 import org.restobar.gaira.modulo_acceso.entity.Rol;
 import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.mapper.usuario.UsuarioMapper;
 import org.restobar.gaira.modulo_acceso.repository.RolRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
-import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.security.audit.annotation.Auditable;
+import org.restobar.gaira.security.audit.util.AuditableService;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings("null")
-public class UsuarioService {
+public class UsuarioService implements AuditableService<Long, Object> {
 
     private static final String ESTADO_HABILITADO = "HABILITADO";
     private static final String ESTADO_BLOQUEADO = "BLOQUEADO";
@@ -31,21 +38,28 @@ public class UsuarioService {
     private final RolRepository rolRepository;
     private final RolUsuarioRepository rolUsuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioMapper usuarioMapper;
 
-    public UsuarioService(UsuarioRepository usuarioRepository,
-                          RolRepository rolRepository,
-                          RolUsuarioRepository rolUsuarioRepository,
-                          PasswordEncoder passwordEncoder) {
-        this.usuarioRepository = usuarioRepository;
-        this.rolRepository = rolRepository;
-        this.rolUsuarioRepository = rolUsuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+    @Override
+    public Object getEntity(Long id) {
+        return usuarioRepository.findByIdWithRoles(id).orElse(null);
+    }
+
+    @Override
+    public Map<String, Object> mapToAudit(Object entity) {
+        if (entity instanceof Usuario u) {
+            return usuarioMapper.toAuditMapLite(u,
+                    u.getRolesUsuario() != null ? u.getRolesUsuario().stream().toList() : List.of());
+        } else if (entity instanceof UsuarioResponse ur) {
+            return usuarioMapper.toAuditMap(ur);
+        }
+        return Map.of();
     }
 
     @Transactional(readOnly = true)
     public List<UsuarioResponse> findAll() {
         return usuarioRepository.findAllWithRoles().stream()
-                .map(AutenticacionMapper::toUsuarioResponse)
+                .map(usuarioMapper::toResponse)
                 .toList();
     }
 
@@ -53,11 +67,12 @@ public class UsuarioService {
     public UsuarioResponse findById(Long id) {
         Usuario usuario = usuarioRepository.findByIdWithRoles(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
-        return AutenticacionMapper.toUsuarioResponse(usuario);
+        return usuarioMapper.toResponse(usuario);
     }
 
     @Transactional
-    public UsuarioResponse create(UsuarioRequest request) {
+    @Auditable(tabla = "usuario", operacion = "INSERT")
+    public UsuarioResponse create(UsuarioCreate request) {
         if (usuarioRepository.existsByCi(request.ci())) {
             throw new ResponseStatusException(CONFLICT, "CI ya registrado");
         }
@@ -66,28 +81,20 @@ public class UsuarioService {
             throw new ResponseStatusException(CONFLICT, "Correo ya registrado");
         }
         if (request.username() != null && !request.username().isBlank() &&
-            usuarioRepository.existsByUsername(request.username())) {
+                usuarioRepository.existsByUsername(request.username())) {
             throw new ResponseStatusException(CONFLICT, "Username ya registrado");
         }
 
-        Usuario usuario = Usuario.builder()
-                .ci(request.ci())
-                .nombre(request.nombre())
-                .apellido(request.apellido())
-                .username(request.username() != null ? request.username() : request.ci())
-                .passwordHash(request.password() != null ? passwordEncoder.encode(request.password()) : passwordEncoder.encode("CHANGE_ME"))
-                .telefono(request.telefono())
-                .sexo(request.sexo())
-                .correo(request.correo())
-                .direccion(request.direccion())
-                .activo(request.activo() == null || request.activo())
-                .estadoAcceso(request.estadoAcceso() != null ? request.estadoAcceso() : ESTADO_HABILITADO)
-                .intentosFallidos(0)
-                .build();
+        String passwordHash = request.password() != null ? passwordEncoder.encode(request.password())
+                : passwordEncoder.encode("CHANGE_ME");
+
+        Usuario usuario = usuarioMapper.toEntity(request, passwordHash);
+        if (usuario.getUsername() == null || usuario.getUsername().isBlank()) {
+            usuario.setUsername(request.ci());
+        }
 
         usuarioRepository.save(usuario);
 
-        // Assign roles if provided
         if (request.roles() != null && !request.roles().isEmpty()) {
             assignRoles(usuario, request.roles());
         }
@@ -96,7 +103,8 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioResponse update(Long id, UsuarioRequest request) {
+    @Auditable(tabla = "usuario", operacion = "UPDATE", idParamName = "id")
+    public UsuarioResponse update(Long id, UsuarioUpdate request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
 
@@ -108,30 +116,17 @@ public class UsuarioService {
             throw new ResponseStatusException(CONFLICT, "Correo ya registrado");
         }
 
-        usuario.setCi(request.ci());
-        usuario.setNombre(request.nombre());
-        usuario.setApellido(request.apellido());
-        usuario.setTelefono(request.telefono());
-        usuario.setSexo(request.sexo());
-        usuario.setCorreo(request.correo());
-        usuario.setDireccion(request.direccion());
-        if (request.activo() != null) {
-            usuario.setActivo(request.activo());
-        }
+        usuarioMapper.updateEntityFromDto(usuario, request);
+
         if (request.estadoAcceso() != null) {
             validarEstadoAcceso(request.estadoAcceso());
-            usuario.setEstadoAcceso(request.estadoAcceso());
         }
 
         usuarioRepository.save(usuario);
 
-        // Replace role assignments if roles list was explicitly provided
         if (request.roles() != null) {
-            // Remove existing role assignments
             List<RolUsuario> existing = rolUsuarioRepository.findByUsuario_IdUsuario(id);
             rolUsuarioRepository.deleteAll(existing);
-
-            // Assign new roles
             if (!request.roles().isEmpty()) {
                 assignRoles(usuario, request.roles());
             }
@@ -141,38 +136,43 @@ public class UsuarioService {
     }
 
     @Transactional
+    @Auditable(tabla = "usuario", operacion = "UPDATE", idParamName = "id")
     public UsuarioResponse bloquear(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
         usuario.setEstadoAcceso(ESTADO_BLOQUEADO);
-        return AutenticacionMapper.toUsuarioResponse(usuarioRepository.save(usuario));
+        Usuario savedUser = usuarioRepository.save(usuario);
+        return usuarioMapper.toResponse(savedUser);
     }
 
     @Transactional
+    @Auditable(tabla = "usuario", operacion = "UPDATE", idParamName = "id")
     public UsuarioResponse desbloquear(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
         usuario.setEstadoAcceso(ESTADO_HABILITADO);
         usuario.setIntentosFallidos(0);
-        return AutenticacionMapper.toUsuarioResponse(usuarioRepository.save(usuario));
+        Usuario savedUser = usuarioRepository.save(usuario);
+        return usuarioMapper.toResponse(savedUser);
     }
 
     @Transactional
+    @Auditable(tabla = "usuario", operacion = "UPDATE", idParamName = "id")
     public UsuarioResponse suspender(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
         usuario.setEstadoAcceso(ESTADO_SUSPENDIDO);
-        return AutenticacionMapper.toUsuarioResponse(usuarioRepository.save(usuario));
+        Usuario savedUser = usuarioRepository.save(usuario);
+        return usuarioMapper.toResponse(savedUser);
     }
 
     @Transactional
+    @Auditable(tabla = "usuario", operacion = "DELETE", idParamName = "id")
     public void delete(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
         usuarioRepository.delete(usuario);
     }
-
-    // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private void assignRoles(Usuario usuario, List<Long> rolIds) {
         for (Long idRol : rolIds) {
