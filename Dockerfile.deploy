@@ -1,0 +1,29 @@
+# Backend Dockerfile para producción (Spring Boot JAR)
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
+WORKDIR /build
+
+COPY gradle/ gradle/
+COPY gradlew gradlew.bat ./
+COPY build.gradle settings.gradle ./
+RUN chmod +x gradlew
+
+COPY src ./src
+RUN ./gradlew bootJar --no-daemon -x test
+
+FROM eclipse-temurin:21-jre-alpine
+
+RUN addgroup -S spring && adduser -S spring -G spring
+
+WORKDIR /app
+
+COPY --from=builder /build/build/libs/*.jar app.jar
+
+ENV JAVA_OPTS=""
+ENV PORT=3000
+
+EXPOSE 3000
+
+USER spring
+
+ENTRYPOINT ["sh", "-c", "if [ -n \"$DATABASE_URL\" ] && [ -z \"$DB_URL\" ]; then export DB_URL=\"$DATABASE_URL\"; fi; if [ -n \"$PGUSER\" ] && [ -z \"$DB_USERNAME\" ]; then export DB_USERNAME=\"$PGUSER\"; fi; if [ -n \"$PGPASSWORD\" ] && [ -z \"$DB_PASSWORD\" ]; then export DB_PASSWORD=\"$PGPASSWORD\"; fi; exec java $JAVA_OPTS -Dserver.port=${PORT:-3000} -jar /app/app.jar"]
