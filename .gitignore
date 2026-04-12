@@ -134,5 +134,5 @@ spring-boot-devtools.properties
 
 
 ### Docker ###
-.dockerignore
-Dockerfile.*
+#.dockerignore
+#Dockerfile.*
