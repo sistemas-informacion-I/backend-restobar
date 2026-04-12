@@ -157,7 +157,7 @@ public class AuthService {
         String username = request.username();
 
         // 1. Verificar bloqueo en Redis antes de cualquier otra cosa
-        Long ttl = redisTemplate.getExpire(REDIS_LOCK_PREFIX + username, TimeUnit.SECONDS);
+        Long ttl = safeRedisGetExpire(REDIS_LOCK_PREFIX + username);
         if (ttl != null && ttl > 0) {
             LocalDateTime lockedUntil = LocalDateTime.now().plusSeconds(ttl);
             logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest, "cuenta_bloqueada_redis");
@@ -189,8 +189,7 @@ public class AuthService {
             if (intentos >= maxFailedAttempts) {
                 // Bloquear en Redis si se supera el límite
                 LocalDateTime expireAt = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
-                redisTemplate.opsForValue().set(REDIS_LOCK_PREFIX + username, "LOCKED", lockoutDurationMinutes,
-                        TimeUnit.MINUTES);
+                safeRedisSetLock(REDIS_LOCK_PREFIX + username, lockoutDurationMinutes);
                 throw new LockoutException("Has superado el límite de intentos. Cuenta bloqueada.", expireAt);
             }
 
@@ -200,7 +199,7 @@ public class AuthService {
 
         // Login exitoso: resetear intentos (DB) y asegurar que no hay bloqueo en Redis
         self.resetearIntentos(usuario);
-        redisTemplate.delete(REDIS_LOCK_PREFIX + username);
+        safeRedisDelete(REDIS_LOCK_PREFIX + username);
 
         ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
         String accessToken = jwtService.generateToken(principal);
@@ -310,5 +309,29 @@ public class AuthService {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private Long safeRedisGetExpire(String key) {
+        try {
+            return redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private void safeRedisSetLock(String key, int minutes) {
+        try {
+            redisTemplate.opsForValue().set(key, "LOCKED", minutes, TimeUnit.MINUTES);
+        } catch (RuntimeException ex) {
+            // Si Redis no está disponible, mantenemos control de intentos por DB para no romper login.
+        }
+    }
+
+    private void safeRedisDelete(String key) {
+        try {
+            redisTemplate.delete(key);
+        } catch (RuntimeException ex) {
+            // No bloquear autenticación por fallos de Redis.
+        }
     }
 }
