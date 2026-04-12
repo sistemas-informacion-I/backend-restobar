@@ -131,3 +131,8 @@ package-lock.json
 
 ### Spring Boot ###
 spring-boot-devtools.properties
+
+
+### Docker ###
+.dockerignore
+Dockerfile.*
