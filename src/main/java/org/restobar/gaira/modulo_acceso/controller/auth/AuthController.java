@@ -2,10 +2,10 @@ package org.restobar.gaira.modulo_acceso.controller.auth;
 
 import java.util.Map;
 
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthLoginRequest;
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegisterRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegister;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthLogin;
 import org.restobar.gaira.modulo_acceso.dto.auth.AuthResponse;
-import org.restobar.gaira.modulo_acceso.dto.auth.RefreshTokenRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.RefreshToken;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.restobar.gaira.modulo_acceso.service.auth.AuthService;
 import org.springframework.http.HttpStatus;
@@ -32,25 +32,25 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRegisterRequest request,
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRegister request,
             HttpServletRequest httpRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request, httpRequest));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthLoginRequest request,
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthLogin request,
             HttpServletRequest httpRequest) {
         return ResponseEntity.ok(authService.login(request, httpRequest));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request,
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshToken request,
             HttpServletRequest httpRequest) {
         return ResponseEntity.ok(authService.refreshToken(request, httpRequest));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshToken request) {
         authService.logout(request);
         return ResponseEntity.noContent().build();
     }

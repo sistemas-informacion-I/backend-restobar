@@ -4,21 +4,21 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthLoginRequest;
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegisterRequest;
+import org.restobar.gaira.exception.LockoutException;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthLogin;
+import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegister;
 import org.restobar.gaira.modulo_acceso.dto.auth.AuthResponse;
-import org.restobar.gaira.modulo_acceso.dto.auth.RefreshTokenRequest;
+import org.restobar.gaira.modulo_acceso.dto.auth.RefreshToken;
 import org.restobar.gaira.modulo_acceso.entity.Rol;
 import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
 import org.restobar.gaira.modulo_acceso.entity.Sesion;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
-import org.restobar.gaira.modulo_acceso.mapper.AutenticacionMapper;
+import org.restobar.gaira.modulo_acceso.mapper.usuario.UsuarioMapper;
 import org.restobar.gaira.modulo_acceso.repository.RolRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.SesionRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
-import org.restobar.gaira.modulo_acceso.service.auditoria.LogAuditoriaService;
-import org.restobar.gaira.exception.LockoutException;
+import org.restobar.gaira.security.audit.service.LogAuditoriaService;
 import org.restobar.gaira.security.jwt.JwtService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +55,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UsuarioMapper usuarioMapper;
 
     @Autowired
     @Lazy
@@ -79,7 +80,8 @@ public class AuthService {
             LogAuditoriaService logAuditoriaService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            RedisTemplate<String, Object> redisTemplate) {
+            RedisTemplate<String, Object> redisTemplate,
+            UsuarioMapper usuarioMapper) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.rolUsuarioRepository = rolUsuarioRepository;
@@ -88,10 +90,11 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.redisTemplate = redisTemplate;
+        this.usuarioMapper = usuarioMapper;
     }
 
     @Transactional
-    public AuthResponse register(AuthRegisterRequest request, HttpServletRequest httpRequest) {
+    public AuthResponse register(AuthRegister request, HttpServletRequest httpRequest) {
         if (usuarioRepository.existsByCi(request.ci())) {
             throw new ResponseStatusException(CONFLICT, "CI ya registrado");
         }
@@ -144,15 +147,15 @@ public class AuthService {
         return new AuthResponse(
                 accessToken,
                 refreshToken,
-                AutenticacionMapper.toUsuarioResponse(usuario),
+                usuarioMapper.toResponse(usuario),
                 usuario.getUsername(),
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 
     @Transactional
-    public AuthResponse login(AuthLoginRequest request, HttpServletRequest httpRequest) {
+    public AuthResponse login(AuthLogin request, HttpServletRequest httpRequest) {
         String username = request.username();
-        
+
         // 1. Verificar bloqueo en Redis antes de cualquier otra cosa
         Long ttl = redisTemplate.getExpire(REDIS_LOCK_PREFIX + username, TimeUnit.SECONDS);
         if (ttl != null && ttl > 0) {
@@ -163,7 +166,8 @@ public class AuthService {
 
         Usuario usuario = usuarioRepository.findActiveByUsernameWithAuthorities(username)
                 .orElseThrow(() -> {
-                    logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest, "usuario_no_existe: " + username);
+                    logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest,
+                            "usuario_no_existe: " + username);
                     return new ResponseStatusException(UNAUTHORIZED, "Credenciales inválidas");
                 });
 
@@ -179,22 +183,25 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.password(), usuario.getPasswordHash())) {
             int intentos = self.incrementarIntentos(usuario, maxFailedAttempts, lockoutDurationMinutes);
-            logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "credenciales_invalidas_intento_" + intentos);
+            logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest,
+                    "credenciales_invalidas_intento_" + intentos);
 
             if (intentos >= maxFailedAttempts) {
                 // Bloquear en Redis si se supera el límite
                 LocalDateTime expireAt = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
-                redisTemplate.opsForValue().set(REDIS_LOCK_PREFIX + username, "LOCKED", lockoutDurationMinutes, TimeUnit.MINUTES);
+                redisTemplate.opsForValue().set(REDIS_LOCK_PREFIX + username, "LOCKED", lockoutDurationMinutes,
+                        TimeUnit.MINUTES);
                 throw new LockoutException("Has superado el límite de intentos. Cuenta bloqueada.", expireAt);
             }
 
-            throw new ResponseStatusException(UNAUTHORIZED, "Credenciales inválidas. Intento " + intentos + " de " + maxFailedAttempts);
+            throw new ResponseStatusException(UNAUTHORIZED,
+                    "Credenciales inválidas. Intento " + intentos + " de " + maxFailedAttempts);
         }
 
         // Login exitoso: resetear intentos (DB) y asegurar que no hay bloqueo en Redis
         self.resetearIntentos(usuario);
         redisTemplate.delete(REDIS_LOCK_PREFIX + username);
-        
+
         ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = UUID.randomUUID().toString();
@@ -205,15 +212,16 @@ public class AuthService {
         return new AuthResponse(
                 accessToken,
                 refreshToken,
-                AutenticacionMapper.toUsuarioResponse(usuario),
+                usuarioMapper.toResponse(usuario),
                 usuario.getUsername(),
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 
     @Transactional
-    public AuthResponse refreshToken(RefreshTokenRequest request, HttpServletRequest httpRequest) {
+    public AuthResponse refreshToken(RefreshToken request, HttpServletRequest httpRequest) {
         Sesion sesion = sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Refresh token inválido o sesión cerrada"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(UNAUTHORIZED, "Refresh token inválido o sesión cerrada"));
 
         if (sesion.getRefreshExpiracion() != null && sesion.getRefreshExpiracion().isBefore(LocalDateTime.now())) {
             sesion.setFechaCierre(LocalDateTime.now());
@@ -240,13 +248,13 @@ public class AuthService {
         return new AuthResponse(
                 newAccessToken,
                 newRefreshToken,
-                AutenticacionMapper.toUsuarioResponse(usuario),
+                usuarioMapper.toResponse(usuario),
                 usuario.getUsername(),
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 
     @Transactional
-    public void logout(RefreshTokenRequest request) {
+    public void logout(RefreshToken request) {
         sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
                 .ifPresent(sesion -> {
                     sesion.setFechaCierre(LocalDateTime.now());
@@ -264,7 +272,8 @@ public class AuthService {
         int intentos = (u.getIntentosFallidos() == null ? 0 : u.getIntentosFallidos()) + 1;
         u.setIntentosFallidos(intentos);
 
-        // Ya no cambiamos el estadoAcceso ni fechaBloqueoFinal en la DB, lo maneja Redis.
+        // Ya no cambiamos el estadoAcceso ni fechaBloqueoFinal en la DB, lo maneja
+        // Redis.
         // Pero mantenemos intentosFallidos para el historial.
         usuarioRepository.saveAndFlush(u);
         return intentos;
@@ -274,7 +283,7 @@ public class AuthService {
     public void resetearIntentos(Usuario usuario) {
         Usuario u = usuarioRepository.findById(usuario.getIdUsuario())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado para resetear intentos"));
-        
+
         u.setIntentosFallidos(0);
         u.setEstadoAcceso(ESTADO_HABILITADO);
         usuarioRepository.saveAndFlush(u);

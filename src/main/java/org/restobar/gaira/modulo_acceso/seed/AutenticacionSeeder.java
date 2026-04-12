@@ -71,9 +71,18 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                 seedPermiso("sessions:read", "SESIONES", "LEER", "Leer sesiones"),
                                 seedPermiso("sessions:revoke", "SESIONES", "ACTUALIZAR", "Revocar sesiones"),
                                 seedPermiso("audit:read", "AUDITORIA", "LEER", "Leer auditoría"),
+                                seedPermiso("clients:create", "CLIENTES", "CREAR", "Crear clientes"),
                                 seedPermiso("clients:read", "CLIENTES", "LEER", "Leer clientes"),
+                                seedPermiso("clients:update", "CLIENTES", "ACTUALIZAR", "Actualizar clientes"),
+                                seedPermiso("clients:delete", "CLIENTES", "ELIMINAR", "Eliminar clientes"),
+                                seedPermiso("employees:create", "EMPLEADOS", "CREAR", "Crear empleados"),
                                 seedPermiso("employees:read", "EMPLEADOS", "LEER", "Leer empleados"),
-                                seedPermiso("providers:read", "PROVEEDORES", "LEER", "Leer proveedores"));
+                                seedPermiso("employees:update", "EMPLEADOS", "ACTUALIZAR", "Actualizar empleados"),
+                                seedPermiso("employees:delete", "EMPLEADOS", "ELIMINAR", "Eliminar empleados"),
+                                seedPermiso("providers:create", "PROVEEDORES", "CREAR", "Crear proveedores"),
+                                seedPermiso("providers:read", "PROVEEDORES", "LEER", "Leer proveedores"),
+                                seedPermiso("providers:update", "PROVEEDORES", "ACTUALIZAR", "Actualizar proveedores"),
+                                seedPermiso("providers:delete", "PROVEEDORES", "ELIMINAR", "Eliminar proveedores"));
 
                 Rol adminRol = rolRepository.findByNombre("ADMIN")
                                 .orElseGet(() -> rolRepository.save(Rol.builder()
@@ -102,6 +111,8 @@ public class AutenticacionSeeder implements CommandLineRunner {
                         }
                 }
 
+                syncAdminPermissions(adminRol);
+
                 Permiso usuarioLeer = permisoRepository.findByNombre("users:read").orElseThrow();
                 if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(userRol.getIdRol(),
                                 usuarioLeer.getIdPermiso())) {
@@ -112,31 +123,7 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                         .build());
                 }
 
-                // Crear usuario admin si no existe (ahora usuario tiene username+password directamente)
-                boolean adminExiste = usuarioRepository.existsByUsername(adminUsername);
-                if (!adminExiste) {
-                        Usuario adminUsuario = usuarioRepository.save(Usuario.builder()
-                                        .ci("ADMIN-0001")
-                                        .nombre("System")
-                                        .apellido("Admin")
-                                        .username(adminUsername)
-                                        .passwordHash(passwordEncoder.encode(adminPassword))
-                                        .sexo("O")
-                                        .correo(adminEmail)
-                                        .intentosFallidos(0)
-                                        .estadoAcceso("HABILITADO")
-                                        .activo(true)
-                                        .build());
-
-                        if (!rolUsuarioRepository.existsByUsuario_IdUsuarioAndRol_IdRol(adminUsuario.getIdUsuario(),
-                                        adminRol.getIdRol())) {
-                                rolUsuarioRepository.save(RolUsuario.builder()
-                                                .usuario(adminUsuario)
-                                                .rol(adminRol)
-                                                .activo(true)
-                                                .build());
-                        }
-                }
+                ensureAdminUser(adminRol);
         }
 
         private Permiso seedPermiso(String nombre, String modulo, String accion, String descripcion) {
@@ -148,5 +135,43 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                                 .descripcion(descripcion)
                                                 .activo(true)
                                                 .build()));
+        }
+
+        private void syncAdminPermissions(Rol adminRol) {
+                for (Permiso permiso : permisoRepository.findAll()) {
+                        if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(adminRol.getIdRol(),
+                                        permiso.getIdPermiso())) {
+                                rolPermisoRepository.save(RolPermiso.builder()
+                                                .rol(adminRol)
+                                                .permiso(permiso)
+                                                .activo(true)
+                                                .build());
+                        }
+                }
+        }
+
+        private void ensureAdminUser(Rol adminRol) {
+                Usuario adminUsuario = usuarioRepository.findByUsername(adminUsername)
+                                .orElseGet(() -> usuarioRepository.save(Usuario.builder()
+                                                .ci("ADMIN-0001")
+                                                .nombre("System")
+                                                .apellido("Admin")
+                                                .username(adminUsername)
+                                                .passwordHash(passwordEncoder.encode(adminPassword))
+                                                .sexo("O")
+                                                .correo(adminEmail)
+                                                .intentosFallidos(0)
+                                                .estadoAcceso("HABILITADO")
+                                                .activo(true)
+                                                .build()));
+
+                if (!rolUsuarioRepository.existsByUsuario_IdUsuarioAndRol_IdRol(adminUsuario.getIdUsuario(),
+                                adminRol.getIdRol())) {
+                        rolUsuarioRepository.save(RolUsuario.builder()
+                                        .usuario(adminUsuario)
+                                        .rol(adminRol)
+                                        .activo(true)
+                                        .build());
+                }
         }
 }
