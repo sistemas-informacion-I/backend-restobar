@@ -33,7 +33,7 @@ COPY --from=layers /extract/snapshot-dependencies/ ./
 COPY --from=layers /extract/application/ ./
 
 # Environment configuration
-ENV JAVA_OPTS="-XX:+UseParallelGC -Xms256m -Xmx512m -XX:MaxRAMPercentage=75.0"
+ENV JAVA_OPTS="-XX:+UseParallelGC -Xms256m -Xmx512m -XX:MaxRAMPercentage=75.0 -Duser.timezone=UTC"
 ENV PORT=3000
 EXPOSE 3000
 

@@ -1,6 +1,7 @@
 package org.restobar.gaira.modulo_acceso.service.auth;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -160,7 +161,7 @@ public class AuthService {
         // 1. Verificar bloqueo en Redis antes de cualquier otra cosa
         Long ttl = safeRedisGetExpire(REDIS_LOCK_PREFIX + username);
         if (ttl != null && ttl > 0) {
-            LocalDateTime lockedUntil = LocalDateTime.now().plusSeconds(ttl);
+            Instant lockedUntil = Instant.now().plusSeconds(ttl);
             logAuditoriaService.logAcceso(null, "usuario", "EJECUTAR", httpRequest, "cuenta_bloqueada_redis");
             throw new LockoutException("Tu cuenta está temporalmente bloqueada.", lockedUntil);
         }
@@ -189,7 +190,7 @@ public class AuthService {
 
             if (intentos >= maxFailedAttempts) {
                 // Bloquear en Redis si se supera el límite
-                LocalDateTime expireAt = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
+                Instant expireAt = Instant.now().plus(lockoutDurationMinutes, java.time.temporal.ChronoUnit.MINUTES);
                 safeRedisSetLock(REDIS_LOCK_PREFIX + username, lockoutDurationMinutes);
                 throw new LockoutException("Has superado el límite de intentos. Cuenta bloqueada.", expireAt);
             }
