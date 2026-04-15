@@ -40,12 +40,11 @@ EXPOSE 3000
 # Railway Entrypoint: Logic to parse DATABASE_URL (PostgreSQL) into Spring properties
 ENTRYPOINT ["sh", "-c", " \
     if [ -n \"$DATABASE_URL\" ]; then \
-        DB_HOST=\"$(echo $DATABASE_URL | sed -e 's/.*@//' -e 's/\/.*//')\"; \
-        DB_NAME=\"$(echo $DATABASE_URL | sed -e 's/.*\///' -e 's/?.*//')\"; \
-        DB_USER=\"$(echo $DATABASE_URL | sed -e 's/.*:\/\///' -e 's/:.*//')\"; \
-        DB_PASS=\"$(echo $DATABASE_URL | sed -e 's/.*:\/\///' -e 's/.*://' -e 's/@.*//')\"; \
-        export DB_URL=\"jdbc:postgresql://$DB_HOST/$DB_NAME\"; \
-        export DB_USERNAME=\"$DB_USER\"; \
-        export DB_PASSWORD=\"$DB_PASS\"; \
+        URL_WITHOUT_PROTO=\"${DATABASE_URL#*://}\"; \
+        DB_CREDS=\"${URL_WITHOUT_PROTO%@*}\"; \
+        HOST_DB=\"${URL_WITHOUT_PROTO#*@}\"; \
+        export DB_URL=\"jdbc:postgresql://${HOST_DB%/*}/${HOST_DB##*/}\"; \
+        export DB_USERNAME=\"${DB_CREDS%:*}\"; \
+        export DB_PASSWORD=\"${DB_CREDS#*:}\"; \
     fi; \
     exec java $JAVA_OPTS -Dserver.port=${PORT:-3000} org.springframework.boot.loader.launch.JarLauncher"]
