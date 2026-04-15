@@ -41,6 +41,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 @Transactional
 @SuppressWarnings("null")
+@lombok.extern.slf4j.Slf4j
 public class AuthService {
 
     private static final String ESTADO_HABILITADO = "HABILITADO";
@@ -314,7 +315,8 @@ public class AuthService {
     private Long safeRedisGetExpire(String key) {
         try {
             return redisTemplate.getExpire(key, TimeUnit.SECONDS);
-        } catch (RuntimeException ex) {
+        } catch (Exception ex) {
+            log.warn("Error al obtener TTL de Redis para clave {}: {}", key, ex.getMessage());
             return null;
         }
     }
@@ -322,7 +324,9 @@ public class AuthService {
     private void safeRedisSetLock(String key, int minutes) {
         try {
             redisTemplate.opsForValue().set(key, "LOCKED", minutes, TimeUnit.MINUTES);
-        } catch (RuntimeException ex) {
+            log.info("Bloqueo establecido en Redis para: {}", key);
+        } catch (Exception ex) {
+            log.error("Error crítico al establecer bloqueo en Redis para {}: {}", key, ex.getMessage());
             // Si Redis no está disponible, mantenemos control de intentos por DB para no romper login.
         }
     }
@@ -330,7 +334,8 @@ public class AuthService {
     private void safeRedisDelete(String key) {
         try {
             redisTemplate.delete(key);
-        } catch (RuntimeException ex) {
+        } catch (Exception ex) {
+            log.warn("Error al eliminar clave {} de Redis: {}", key, ex.getMessage());
             // No bloquear autenticación por fallos de Redis.
         }
     }
