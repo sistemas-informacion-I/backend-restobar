@@ -63,8 +63,8 @@ public class LogAuditoriaService {
                     .operacion(operacion)
                     .idRegistro(usuarioReferencia != null ? String.valueOf(usuarioReferencia.getIdUsuario()) : null)
                     .usuario(usuarioReferencia)
-                    .ipOrigen(extractIp(request))
-                    .userAgent(request.getHeader("User-Agent"))
+                    .ipOrigen(request != null ? extractIp(request) : null)
+                    .userAgent(request != null ? request.getHeader("User-Agent") : null)
                     .datosNuevos(Map.of("resultado", descripcion))
                     .build();
             logAuditoriaRepository.save(auditLog);
