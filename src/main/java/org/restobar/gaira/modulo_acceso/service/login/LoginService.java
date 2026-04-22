@@ -1,35 +1,31 @@
-package org.restobar.gaira.modulo_acceso.service.auth;
+package org.restobar.gaira.modulo_acceso.service.login;
 
-import java.time.LocalDateTime;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.restobar.gaira.exception.LockoutException;
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthLogin;
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthRegister;
-import org.restobar.gaira.modulo_acceso.dto.auth.AuthResponse;
-import org.restobar.gaira.modulo_acceso.dto.auth.RefreshToken;
-import org.restobar.gaira.modulo_acceso.entity.Rol;
-import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
+import org.restobar.gaira.modulo_acceso.dto.login.LoginRequest;
+import org.restobar.gaira.modulo_acceso.dto.login.LoginResponse;
+import org.restobar.gaira.modulo_acceso.dto.login.RefreshTokenRequest;
+import org.restobar.gaira.modulo_acceso.dto.login.SendCodeRequest;
+import org.restobar.gaira.modulo_acceso.dto.login.VerifyCodeRequest;
 import org.restobar.gaira.modulo_acceso.entity.Sesion;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.UsuarioMapper;
-import org.restobar.gaira.modulo_acceso.repository.RolRepository;
-import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
-import org.restobar.gaira.modulo_acceso.repository.SesionRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
+import org.restobar.gaira.modulo_acceso.repository.login.SesionRepository;
 import org.restobar.gaira.security.audit.service.LogAuditoriaService;
 import org.restobar.gaira.security.jwt.JwtService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,26 +38,26 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 @Transactional
 @SuppressWarnings("null")
-@lombok.extern.slf4j.Slf4j
-public class AuthService {
+public class LoginService {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginService.class);
 
     private static final String ESTADO_HABILITADO = "HABILITADO";
     private static final String ESTADO_SUSPENDIDO = "SUSPENDIDO";
     private static final String REDIS_LOCK_PREFIX = "lockout:";
 
     private final UsuarioRepository usuarioRepository;
-    private final RolRepository rolRepository;
-    private final RolUsuarioRepository rolUsuarioRepository;
     private final SesionRepository sesionRepository;
     private final LogAuditoriaService logAuditoriaService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final UsuarioMapper usuarioMapper;
+    private final EmailService emailService;
 
     @Autowired
     @Lazy
-    private AuthService self;
+    private LoginService self;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -75,90 +71,29 @@ public class AuthService {
     @Value("${auth.lockout-duration-minutes:3}")
     private int lockoutDurationMinutes;
 
-    public AuthService(UsuarioRepository usuarioRepository,
-            RolRepository rolRepository,
-            RolUsuarioRepository rolUsuarioRepository,
+    public LoginService(UsuarioRepository usuarioRepository,
             SesionRepository sesionRepository,
             LogAuditoriaService logAuditoriaService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             RedisTemplate<String, Object> redisTemplate,
-            UsuarioMapper usuarioMapper) {
+            UsuarioMapper usuarioMapper,
+            EmailService emailService) {
         this.usuarioRepository = usuarioRepository;
-        this.rolRepository = rolRepository;
-        this.rolUsuarioRepository = rolUsuarioRepository;
         this.sesionRepository = sesionRepository;
         this.logAuditoriaService = logAuditoriaService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.redisTemplate = redisTemplate;
         this.usuarioMapper = usuarioMapper;
+        this.emailService = emailService;
     }
 
     @Transactional
-    public AuthResponse register(AuthRegister request, HttpServletRequest httpRequest) {
-        if (usuarioRepository.existsByCi(request.ci())) {
-            throw new ResponseStatusException(CONFLICT, "CI ya registrado");
-        }
-        if (usuarioRepository.existsByCorreo(request.correo())) {
-            throw new ResponseStatusException(CONFLICT, "Correo ya registrado");
-        }
-        if (usuarioRepository.existsByUsername(request.username())) {
-            throw new ResponseStatusException(CONFLICT, "Username ya registrado");
-        }
-
-        Usuario usuario = Usuario.builder()
-                .ci(request.ci())
-                .nombre(request.nombre())
-                .apellido(request.apellido())
-                .username(request.username())
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .telefono(request.telefono())
-                .sexo(request.sexo())
-                .correo(request.correo())
-                .direccion(request.direccion())
-                .intentosFallidos(0)
-                .estadoAcceso(ESTADO_HABILITADO)
-                .activo(true)
-                .build();
-        usuarioRepository.save(usuario);
-
-        String roleName = (request.rol() == null || request.rol().isBlank()) ? "USER" : request.rol().trim();
-        Rol rol = rolRepository.findByNombre(roleName)
-                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Rol no encontrado: " + roleName));
-
-        RolUsuario rolUsuario = RolUsuario.builder()
-                .usuario(usuario)
-                .rol(rol)
-                .activo(true)
-                .build();
-        rolUsuarioRepository.save(rolUsuario);
-
-        Usuario usuarioConAuthorities = usuarioRepository
-                .findActiveByUsernameWithAuthorities(request.username())
-                .orElseThrow(() -> new ResponseStatusException(INTERNAL_SERVER_ERROR,
-                        "No se pudo cargar usuario registrado"));
-
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuarioConAuthorities);
-        String accessToken = jwtService.generateToken(principal);
-        String refreshToken = UUID.randomUUID().toString();
-
-        createSession(usuario, accessToken, refreshToken, httpRequest);
-        logAuditoriaService.logAcceso(usuario, "usuario", "INSERT", httpRequest, "registro_exitoso");
-
-        return new AuthResponse(
-                accessToken,
-                refreshToken,
-                usuarioMapper.toResponse(usuario),
-                usuario.getUsername(),
-                principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
-    }
-
-    @Transactional
-    public AuthResponse login(AuthLogin request, HttpServletRequest httpRequest) {
+    public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         String username = request.username();
 
-        // 1. Verificar bloqueo en Redis antes de cualquier otra cosa
+        // 1. Verificar bloqueo en Redis
         Long ttl = safeRedisGetExpire(REDIS_LOCK_PREFIX + username);
         if (ttl != null && ttl > 0) {
             Instant lockedUntil = Instant.now().plusSeconds(ttl);
@@ -189,7 +124,6 @@ public class AuthService {
                     "credenciales_invalidas_intento_" + intentos);
 
             if (intentos >= maxFailedAttempts) {
-                // Bloquear en Redis si se supera el límite
                 Instant expireAt = Instant.now().plus(lockoutDurationMinutes, java.time.temporal.ChronoUnit.MINUTES);
                 safeRedisSetLock(REDIS_LOCK_PREFIX + username, lockoutDurationMinutes);
                 throw new LockoutException("Has superado el límite de intentos. Cuenta bloqueada.", expireAt);
@@ -199,7 +133,6 @@ public class AuthService {
                     "Credenciales inválidas. Intento " + intentos + " de " + maxFailedAttempts);
         }
 
-        // Login exitoso: resetear intentos (DB) y asegurar que no hay bloqueo en Redis
         self.resetearIntentos(usuario);
         safeRedisDelete(REDIS_LOCK_PREFIX + username);
 
@@ -210,7 +143,7 @@ public class AuthService {
         createSession(usuario, accessToken, refreshToken, httpRequest);
         logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "login_exitoso");
 
-        return new AuthResponse(
+        return new LoginResponse(
                 accessToken,
                 refreshToken,
                 usuarioMapper.toResponse(usuario),
@@ -219,7 +152,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse refreshToken(RefreshToken request, HttpServletRequest httpRequest) {
+    public LoginResponse refreshToken(RefreshTokenRequest request, HttpServletRequest httpRequest) {
         Sesion sesion = sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
                 .orElseThrow(
                         () -> new ResponseStatusException(UNAUTHORIZED, "Refresh token inválido o sesión cerrada"));
@@ -246,7 +179,7 @@ public class AuthService {
         sesion.setUserAgent(httpRequest.getHeader("User-Agent"));
         sesionRepository.save(sesion);
 
-        return new AuthResponse(
+        return new LoginResponse(
                 newAccessToken,
                 newRefreshToken,
                 usuarioMapper.toResponse(usuario),
@@ -255,7 +188,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(RefreshToken request) {
+    public void logout(RefreshTokenRequest request) {
         sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
                 .ifPresent(sesion -> {
                     sesion.setFechaCierre(LocalDateTime.now());
@@ -263,7 +196,68 @@ public class AuthService {
                 });
     }
 
-    // ─── Login Attempt Logic (Transaccional Independiente) ──────────────────────
+    @Transactional
+    public void sendResetCode(SendCodeRequest request, HttpServletRequest httpRequest) {
+        Usuario usuario = usuarioRepository.findByCorreo(request.correo())
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Correo no registrado."));
+
+        String code = generateAlphanumericCode(6);
+        String key = "reset:code:" + request.correo();
+
+        try {
+            redisTemplate.opsForValue().set(key, code, 15, TimeUnit.MINUTES);
+            log.info("Código de recuperación guardado en Redis para {}", request.correo());
+        } catch (Exception e) {
+            log.error("Error al guardar código en Redis para {}: {}. ¿Está Redis activo?", request.correo(),
+                    e.getMessage());
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "El servicio de recuperación no está disponible en este momento. Inténtelo más tarde.");
+        }
+
+        boolean emailSent = emailService.sendResetCode(request.correo(), usuario.getUsername(), code);
+        if (!emailSent) {
+            safeRedisDelete(key);
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo enviar el código de recuperación. Verifique la configuración SMTP e intente nuevamente.");
+        }
+
+        logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "solicitud_codigo_recuperacion");
+    }
+
+    @Transactional
+    public void verifyAndResetPassword(VerifyCodeRequest request, HttpServletRequest httpRequest) {
+        String key = "reset:code:" + request.correo();
+        String savedCode = null;
+
+        try {
+            savedCode = (String) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("Error al obtener código de Redis para {}: {}. ¿Está Redis activo?", request.correo(),
+                    e.getMessage());
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "El servicio de verificación no está disponible en este momento.");
+        }
+
+        if (savedCode == null || !savedCode.equals(request.codigo())) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Código inválido o expirado.");
+        }
+
+        Usuario usuario = usuarioRepository.findByCorreo(request.correo())
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no encontrado."));
+
+        String newPassword = generateSecurePassword(12);
+        usuario.setPasswordHash(passwordEncoder.encode(newPassword));
+        usuarioRepository.save(usuario);
+
+        boolean emailSent = emailService.sendNewPassword(request.correo(), usuario.getUsername(), newPassword);
+        if (!emailSent) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo enviar la nueva contraseña. Revise SMTP e intente nuevamente.");
+        }
+        safeRedisDelete(key);
+
+        logAuditoriaService.logAcceso(usuario, "usuario", "UPDATE", httpRequest, "reset_password_exitoso");
+    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int incrementarIntentos(Usuario usuario, int maxIntentos, int durationMinutes) {
@@ -272,10 +266,6 @@ public class AuthService {
 
         int intentos = (u.getIntentosFallidos() == null ? 0 : u.getIntentosFallidos()) + 1;
         u.setIntentosFallidos(intentos);
-
-        // Ya no cambiamos el estadoAcceso ni fechaBloqueoFinal en la DB, lo maneja
-        // Redis.
-        // Pero mantenemos intentosFallidos para el historial.
         usuarioRepository.saveAndFlush(u);
         return intentos;
     }
@@ -328,7 +318,6 @@ public class AuthService {
             log.info("Bloqueo establecido en Redis para: {}", key);
         } catch (Exception ex) {
             log.error("Error crítico al establecer bloqueo en Redis para {}: {}", key, ex.getMessage());
-            // Si Redis no está disponible, mantenemos control de intentos por DB para no romper login.
         }
     }
 
@@ -337,7 +326,46 @@ public class AuthService {
             redisTemplate.delete(key);
         } catch (Exception ex) {
             log.warn("Error al eliminar clave {} de Redis: {}", key, ex.getMessage());
-            // No bloquear autenticación por fallos de Redis.
         }
+    }
+
+    private String generateAlphanumericCode(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    private String generateSecurePassword(int length) {
+        String lower = "abcdefghijklmnopqrstuvwxyz";
+        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String digits = "0123456789";
+        String all = lower + upper + digits;
+
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder();
+
+        // Ensure at least one of each
+        sb.append(lower.charAt(random.nextInt(lower.length())));
+        sb.append(upper.charAt(random.nextInt(upper.length())));
+        sb.append(digits.charAt(random.nextInt(digits.length())));
+
+        for (int i = 3; i < length; i++) {
+            sb.append(all.charAt(random.nextInt(all.length())));
+        }
+
+        // Shuffle
+        char[] result = sb.toString().toCharArray();
+        for (int i = result.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char temp = result[i];
+            result[i] = result[j];
+            result[j] = temp;
+        }
+
+        return new String(result);
     }
 }

@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_acceso.dto.auth;
+package org.restobar.gaira.modulo_acceso.dto.login;
 
 import lombok.Builder;
 import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
@@ -6,7 +6,7 @@ import org.restobar.gaira.modulo_acceso.dto.usuario.UsuarioResponse;
 import java.util.List;
 
 @Builder
-public record AuthResponse(
+public record LoginResponse(
                 String accessToken,
                 String refreshToken,
                 UsuarioResponse user,

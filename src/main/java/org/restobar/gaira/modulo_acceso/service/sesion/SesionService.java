@@ -7,7 +7,7 @@ import java.util.Map;
 import org.restobar.gaira.modulo_acceso.dto.sesion.SesionResponse;
 import org.restobar.gaira.modulo_acceso.entity.Sesion;
 import org.restobar.gaira.modulo_acceso.mapper.sesion.SesionMapper;
-import org.restobar.gaira.modulo_acceso.repository.SesionRepository;
+import org.restobar.gaira.modulo_acceso.repository.login.SesionRepository;
 import org.restobar.gaira.security.audit.util.AuditableService;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.stereotype.Service;
