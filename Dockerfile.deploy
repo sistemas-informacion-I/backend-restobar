@@ -11,11 +11,12 @@ RUN chmod +x gradlew && ./gradlew --no-daemon dependencies
 COPY src ./src
 RUN ./gradlew bootJar --no-daemon -x test
 
-# Stage 2: Extract layers from the JAR
+# Stage 2: Extract layers from the JAR using the new 'tools' jarmode (Spring Boot 3.3+)
 FROM eclipse-temurin:21-jre-alpine AS layers
 WORKDIR /extract
-COPY --from=builder /build/build/libs/*.jar app.jar
-RUN java -Djarmode=layertools -jar app.jar extract
+# Copy specifically the boot jar (non-plain)
+COPY --from=builder /build/build/libs/gaira-*.jar app.jar
+RUN java -Djarmode=tools -jar app.jar extract --layers --destination .
 
 # Stage 3: Professional runtime image
 FROM eclipse-temurin:21-jre-alpine
@@ -39,11 +40,11 @@ EXPOSE 3000
 
 # Railway Entrypoint: Logic to parse DATABASE_URL (PostgreSQL) into Spring properties
 ENTRYPOINT ["sh", "-c", " \
-    if [ -n \"$DATABASE_URL\" ]; then \
+    if [ -n \"$DATABASE_URL\" ] && ! echo \"$DATABASE_URL\" | grep -q \"jdbc:\"; then \
         URL_WITHOUT_PROTO=\"${DATABASE_URL#*://}\"; \
         DB_CREDS=\"${URL_WITHOUT_PROTO%@*}\"; \
-        HOST_DB=\"${URL_WITHOUT_PROTO#*@}\"; \
-        export DB_URL=\"jdbc:postgresql://${HOST_DB%/*}/${HOST_DB##*/}\"; \
+        HOST_DB_PART=\"${URL_WITHOUT_PROTO#*@}\"; \
+        export DB_URL=\"jdbc:postgresql://${HOST_DB_PART%%/*}/${HOST_DB_PART#*/}\"; \
         export DB_USERNAME=\"${DB_CREDS%:*}\"; \
         export DB_PASSWORD=\"${DB_CREDS#*:}\"; \
     fi; \

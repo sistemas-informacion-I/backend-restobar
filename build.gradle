@@ -46,3 +46,8 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Disable plain jar generation to avoid conflicts in Docker multi-stage builds
+jar {
+	enabled = false
+}
