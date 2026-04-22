@@ -1,17 +1,17 @@
 package org.restobar.gaira.modulo_acceso.mapper.rol;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.restobar.gaira.modulo_acceso.dto.rol.RolCreate;
 import org.restobar.gaira.modulo_acceso.dto.rol.RolResponse;
 import org.restobar.gaira.modulo_acceso.dto.rol.RolUpdate;
 import org.restobar.gaira.modulo_acceso.entity.Rol;
-import org.restobar.gaira.modulo_acceso.entity.RolPermiso;
 import org.restobar.gaira.modulo_acceso.mapper.permiso.PermissionMapper;
 import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
