@@ -6,7 +6,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "mesa", schema = "public")
-@Data
+@Setter //genera automaticamente setters and getters
+@Getter
+@ToString
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -14,6 +17,7 @@ public class Mesa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include // hace que se comparen objetos solo por su id
     @Column(name = "id_mesa")
     private Long idMesa;
 
