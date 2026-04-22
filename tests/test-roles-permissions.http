@@ -1,0 +1,47 @@
+### Solicitud de Login para obtener Token
+# @name login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin123*"
+}
+
+@token = {{login.response.body.accessToken}}
+
+### Obtener todos los roles
+GET http://localhost:3000/api/roles
+Authorization: Bearer {{token}}
+
+### Obtener todos los permisos (necesario para tener IDs válidos)
+GET http://localhost:3000/api/permisos
+Authorization: Bearer {{token}}
+
+### 1. Actualizar permisos de un rol existente (Sync completo)
+# Cambia '1' por el ID de un rol existente
+PUT http://localhost:3000/api/roles/4
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "ADMINISTRADOR2",
+  "descripcion": "Rol con todos los accesos",
+  "nivelAcceso": 1,
+  "activo": true,
+  "permisos": [1, 2, 3, 4, 5,6,7,8,9,10]
+}
+
+### 2. Asignar un permiso individual a un rol
+# Asigna el permiso con ID 10 al rol con ID 2
+POST http://localhost:3000/api/roles/2/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "idPermiso": 8
+}
+
+### 3. Verificar cambios (Ver detalle del rol)
+GET http://localhost:3000/api/roles/3
+Authorization: Bearer {{token}}

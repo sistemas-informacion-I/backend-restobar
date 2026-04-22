@@ -9,10 +9,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.restobar.gaira.acceso.entity.Permiso;
-import org.restobar.gaira.acceso.entity.RolPermiso;
-import org.restobar.gaira.acceso.entity.RolUsuario;
-import org.restobar.gaira.acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.entity.Permiso;
+import org.restobar.gaira.modulo_acceso.entity.RolPermiso;
+import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
