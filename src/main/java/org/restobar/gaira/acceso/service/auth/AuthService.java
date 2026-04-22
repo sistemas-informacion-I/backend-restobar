@@ -228,13 +228,88 @@ public class AuthService {
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void logout(RefreshTokenRequest request) {
         sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
                 .ifPresent(sesion -> {
                     sesion.setFechaCierre(LocalDateTime.now());
                     sesionRepository.save(sesion);
                 });
+    }
+
+    /**
+     * Obtiene un usuario por su ID. Utilizado por el endpoint /auth/me
+     * para devolver la información completa del usuario autenticado.
+     */
+    @Transactional(readOnly = true)
+    public Usuario getUserById(Long idUsuario) {
+        return usuarioRepository.findByIdWithRoles(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no encontrado"));
+    }
+
+    /**
+     * Actualiza el perfil del usuario autenticado.
+     * Solo permite modificar campos no sensibles (nombre, apellido, teléfono, correo, dirección).
+     */
+    @Transactional
+    public Usuario updateProfile(Long idUsuario, org.restobar.gaira.acceso.dto.auth.UpdatePerfilRequest request, HttpServletRequest httpRequest) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no encontrado"));
+
+        // Verificar si el correo ya está en uso por otro usuario
+        if (request.correo() != null && !request.correo().isBlank()) {
+            usuarioRepository.findByCorreo(request.correo())
+                    .filter(u -> !u.getIdUsuario().equals(idUsuario))
+                    .ifPresent(u -> {
+                        throw new ResponseStatusException(CONFLICT, "El correo ya está en uso por otro usuario");
+                    });
+        }
+
+        // Actualizar campos si se proporcionan
+        if (request.nombre() != null && !request.nombre().isBlank()) {
+            usuario.setNombre(request.nombre());
+        }
+        if (request.apellido() != null && !request.apellido().isBlank()) {
+            usuario.setApellido(request.apellido());
+        }
+        if (request.telefono() != null) {
+            usuario.setTelefono(request.telefono());
+        }
+        if (request.correo() != null) {
+            usuario.setCorreo(request.correo());
+        }
+        if (request.direccion() != null) {
+            usuario.setDireccion(request.direccion());
+        }
+
+        usuarioRepository.save(usuario);
+        logAcceso(usuario, "usuario", "UPDATE", httpRequest, "perfil_actualizado");
+        
+        // Recargar usuario con roles para evitar LazyInitializationException
+        return usuarioRepository.findByIdWithRoles(idUsuario)
+                .orElse(usuario);
+    }
+
+    /**
+     * Cambia la contraseña del usuario autenticado.
+     * Requiere la contraseña actual para verificar identidad.
+     */
+    @Transactional
+    public void changePassword(Long idUsuario, org.restobar.gaira.acceso.dto.auth.ChangePasswordRequest request, HttpServletRequest httpRequest) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no encontrado"));
+
+        // Verificar contraseña actual
+        if (!passwordEncoder.matches(request.currentPassword(), usuario.getPasswordHash())) {
+            logAcceso(usuario, "usuario", "UPDATE", httpRequest, "cambio_password_fallido");
+            throw new ResponseStatusException(BAD_REQUEST, "La contraseña actual es incorrecta");
+        }
+
+        // Actualizar contraseña
+        usuario.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        usuarioRepository.save(usuario);
+        
+        logAcceso(usuario, "usuario", "UPDATE", httpRequest, "password_cambiado");
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────

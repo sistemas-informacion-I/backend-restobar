@@ -82,11 +82,23 @@ public final class AutenticacionMapper {
     }
 
     public static EmpleadoResponse toEmpleadoResponse(Empleado empleado) {
+        Usuario usuario = empleado.getUsuario();
         return new EmpleadoResponse(
                 empleado.getIdEmpleado(),
-                empleado.getUsuario() != null ? empleado.getUsuario().getIdUsuario() : null,
+                usuario != null ? usuario.getIdUsuario() : null,
+                usuario != null ? usuario.getCi() : null,
+                usuario != null ? usuario.getNombre() : null,
+                usuario != null ? usuario.getApellido() : null,
+                usuario != null ? usuario.getUsername() : null,
+                usuario != null ? usuario.getTelefono() : null,
+                usuario != null ? usuario.getSexo() : null,
+                usuario != null ? usuario.getCorreo() : null,
+                usuario != null ? usuario.getDireccion() : null,
+                usuario != null ? usuario.getActivo() : null,
+                usuario != null ? usuario.getEstadoAcceso() : null,
                 empleado.getCodigoEmpleado(),
                 empleado.getSalario(),
+                empleado.getTurno(),
                 empleado.getFechaContratacion(),
                 empleado.getFechaFinalizacion()
         );

@@ -23,7 +23,7 @@ public class Empleado {
     @Column(name = "id_empleado")
     private Long idEmpleado;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_usuario", nullable = false, unique = true)
     private Usuario usuario;
 
@@ -35,6 +35,9 @@ public class Empleado {
     @DecimalMin(value = "0", inclusive = false, message = "Salario debe ser mayor a 0")
     @Column(name = "salario", nullable = false, precision = 10, scale = 2)
     private BigDecimal salario;
+
+    @Column(name = "turno", length = 2)
+    private String turno;
 
     @Column(name = "fecha_contratacion", nullable = false)
     private LocalDate fechaContratacion;

@@ -72,7 +72,10 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                 seedPermiso("sessions:revoke", "SESIONES", "ACTUALIZAR", "Revocar sesiones"),
                                 seedPermiso("audit:read", "AUDITORIA", "LEER", "Leer auditoría"),
                                 seedPermiso("clients:read", "CLIENTES", "LEER", "Leer clientes"),
+                                seedPermiso("employees:create", "EMPLEADOS", "CREAR", "Crear empleados"),
                                 seedPermiso("employees:read", "EMPLEADOS", "LEER", "Leer empleados"),
+                                seedPermiso("employees:update", "EMPLEADOS", "ACTUALIZAR", "Actualizar empleados"),
+                                seedPermiso("employees:delete", "EMPLEADOS", "ELIMINAR", "Eliminar empleados"),
                                 seedPermiso("providers:read", "PROVEEDORES", "LEER", "Leer proveedores"));
 
                 Rol adminRol = rolRepository.findByNombre("ADMIN")

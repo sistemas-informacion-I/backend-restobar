@@ -1,7 +1,6 @@
 package org.restobar.gaira.acceso.dto.usuario;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 /**
@@ -10,11 +9,8 @@ import jakarta.validation.constraints.Pattern;
  * En actualización, si username/password son null se ignoran.
  */
 public record UsuarioRequest(
-        @NotBlank(message = "CI es requerido")
         String ci,
-        @NotBlank(message = "Nombre es requerido")
         String nombre,
-        @NotBlank(message = "Apellido es requerido")
         String apellido,
         String username,
         String password,
