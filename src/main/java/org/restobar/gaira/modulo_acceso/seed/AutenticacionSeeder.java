@@ -137,6 +137,23 @@ public class AutenticacionSeeder implements CommandLineRunner {
                 }
 
                 ensureAdminUser(adminRol);
+
+                // Roles operativos
+                seedRol("CAJERO", "Responsable de caja y cobros", 10);
+                seedRol("BARTENDER", "Encargado de la barra y bebidas", 5);
+                seedRol("COCINERO", "Personal de cocina", 5);
+                seedRol("MESERO", "Atención a mesas y pedidos", 5);
+        }
+
+        private void seedRol(String nombre, String descripcion, int nivelAcceso) {
+                if (!rolRepository.existsByNombre(nombre)) {
+                        rolRepository.save(Rol.builder()
+                                        .nombre(nombre)
+                                        .descripcion(descripcion)
+                                        .nivelAcceso(nivelAcceso)
+                                        .activo(true)
+                                        .build());
+                }
         }
 
         private Permiso seedPermiso(String nombre, String modulo, String accion, String descripcion) {

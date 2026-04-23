@@ -16,14 +16,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class Empleado {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_empleado")
+    @EqualsAndHashCode.Include
     private Long idEmpleado;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_usuario", nullable = false, unique = true)
     private Usuario usuario;
 
@@ -36,6 +39,9 @@ public class Empleado {
     @Column(name = "salario", nullable = false, precision = 10, scale = 2)
     private BigDecimal salario;
 
+    @Column(name = "turno", length = 2)
+    private String turno;
+
     @Column(name = "fecha_contratacion", nullable = false)
     private LocalDate fechaContratacion;
 
@@ -45,6 +51,7 @@ public class Empleado {
     // Relaciones
     @Builder.Default
     @OneToMany(mappedBy = "empleado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude
     private List<EmpleadoSucursal> empleadoSucursales = new ArrayList<>();
 
     @PrePersist
