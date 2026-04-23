@@ -82,7 +82,20 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                 seedPermiso("providers:create", "PROVEEDORES", "CREAR", "Crear proveedores"),
                                 seedPermiso("providers:read", "PROVEEDORES", "LEER", "Leer proveedores"),
                                 seedPermiso("providers:update", "PROVEEDORES", "ACTUALIZAR", "Actualizar proveedores"),
-                                seedPermiso("providers:delete", "PROVEEDORES", "ELIMINAR", "Eliminar proveedores"));
+                                seedPermiso("providers:delete", "PROVEEDORES", "ELIMINAR", "Eliminar proveedores"),
+                                // Operaciones
+                                seedPermiso("sucursales:create", "SUCURSALES", "CREAR", "Crear sucursales"),
+                                seedPermiso("sucursales:read", "SUCURSALES", "LEER", "Leer sucursales"),
+                                seedPermiso("sucursales:update", "SUCURSALES", "ACTUALIZAR", "Actualizar sucursales"),
+                                seedPermiso("sucursales:delete", "SUCURSALES", "ELIMINAR", "Eliminar sucursales"),
+                                seedPermiso("sectores:create", "SECTORES", "CREAR", "Crear sectores"),
+                                seedPermiso("sectores:read", "SECTORES", "LEER", "Leer sectores"),
+                                seedPermiso("sectores:update", "SECTORES", "ACTUALIZAR", "Actualizar sectores"),
+                                seedPermiso("sectores:delete", "SECTORES", "ELIMINAR", "Eliminar sectores"),
+                                seedPermiso("mesas:create", "MESAS", "CREAR", "Crear mesas"),
+                                seedPermiso("mesas:read", "MESAS", "LEER", "Leer mesas"),
+                                seedPermiso("mesas:update", "MESAS", "ACTUALIZAR", "Actualizar mesas"),
+                                seedPermiso("mesas:delete", "MESAS", "ELIMINAR", "Eliminar mesas"));
 
                 Rol adminRol = rolRepository.findByNombre("ADMIN")
                                 .orElseGet(() -> rolRepository.save(Rol.builder()
