@@ -24,14 +24,15 @@ WORKDIR /app
 
 # Non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring
 
 # Copy layers from the stages above
 # Layers are copied in order from most stable to most volatile
-COPY --from=layers /extract/dependencies/ ./
-COPY --from=layers /extract/spring-boot-loader/ ./
-COPY --from=layers /extract/snapshot-dependencies/ ./
-COPY --from=layers /extract/application/ ./
+COPY --from=layers --chown=spring:spring /extract/dependencies/ ./
+COPY --from=layers --chown=spring:spring /extract/spring-boot-loader/ ./
+COPY --from=layers --chown=spring:spring /extract/snapshot-dependencies/ ./
+COPY --from=layers --chown=spring:spring /extract/application/ ./
+
+USER spring
 
 # Environment configuration
 ENV JAVA_OPTS="-XX:+UseParallelGC -Xms256m -Xmx512m -XX:MaxRAMPercentage=75.0 -Duser.timezone=UTC"
@@ -48,4 +49,4 @@ ENTRYPOINT ["sh", "-c", " \
         export DB_USERNAME=\"${DB_CREDS%:*}\"; \
         export DB_PASSWORD=\"${DB_CREDS#*:}\"; \
     fi; \
-    exec java $JAVA_OPTS -Dserver.port=${PORT:-3000} org.springframework.boot.loader.launch.JarLauncher"]
+    exec java $JAVA_OPTS -cp . -Dserver.port=${PORT:-3000} org.springframework.boot.loader.launch.JarLauncher"]
