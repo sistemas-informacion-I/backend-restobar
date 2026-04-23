@@ -44,6 +44,48 @@ public class EmpleadoMapper {
         map.put("salario", empleado.getSalario());
         map.put("turno", empleado.getTurno());
         map.put("fechaContratacion", empleado.getFechaContratacion());
+        map.put("fechaFinalizacion", empleado.getFechaFinalizacion());
+        
+        Usuario usuario = empleado.getUsuario();
+        if (usuario != null) {
+            map.put("idUsuario", usuario.getIdUsuario());
+            map.put("ci", usuario.getCi());
+            map.put("username", usuario.getUsername());
+            map.put("nombre", usuario.getNombre());
+            map.put("apellido", usuario.getApellido());
+            map.put("correo", usuario.getCorreo());
+            map.put("telefono", usuario.getTelefono());
+            map.put("sexo", usuario.getSexo());
+            map.put("direccion", usuario.getDireccion());
+            map.put("estadoAcceso", usuario.getEstadoAcceso());
+            map.put("activo", usuario.getActivo());
+        }
         return map;
     }
+
+    public Map<String, Object> toAuditMap(EmpleadoResponse dto) {
+        if (dto == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idEmpleado", dto.idEmpleado());
+        map.put("idUsuario", dto.idUsuario());
+        map.put("codigoEmpleado", dto.codigoEmpleado());
+        map.put("salario", dto.salario());
+        map.put("turno", dto.turno());
+        map.put("fechaContratacion", dto.fechaContratacion());
+        map.put("fechaFinalizacion", dto.fechaFinalizacion());
+        map.put("ci", dto.ci());
+        map.put("username", dto.username());
+        map.put("nombre", dto.nombre());
+        map.put("apellido", dto.apellido());
+        map.put("correo", dto.correo());
+        map.put("telefono", dto.telefono());
+        map.put("sexo", dto.sexo());
+        map.put("direccion", dto.direccion());
+        map.put("estadoAcceso", dto.estadoAcceso());
+        map.put("activo", dto.activo());
+        return map;
+    }
+
 }
+
+

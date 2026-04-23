@@ -1,5 +1,6 @@
 package org.restobar.gaira.modulo_operaciones.service.sucursal;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import java.util.List;
@@ -9,6 +10,8 @@ import org.restobar.gaira.modulo_operaciones.dto.sucursal.SucursalRequestDTO;
 import org.restobar.gaira.modulo_operaciones.entity.*;
 import org.restobar.gaira.modulo_operaciones.mapper.sucursal.SucursalMapper;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
+import org.restobar.gaira.security.audit.annotation.Auditable;
+import org.restobar.gaira.security.audit.util.AuditableService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +19,25 @@ import lombok.RequiredArgsConstructor;
 
 @Service // esta clase es un Service, regístrala y adminístrala tú
 @RequiredArgsConstructor // Genera automáticamente un constructor con todos los campos que son final
-public class SucursalService {
+public class SucursalService implements AuditableService<Long, Object> {
 
     private final SucursalRepository sucursalRepository;
     private final SucursalMapper sucursalMapper;
+
+    @Override
+    public Object getEntity(Long id) {
+        return sucursalRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public Map<String, Object> mapToAudit(Object entity) {
+        if (entity instanceof Sucursal s) {
+            return sucursalMapper.toAuditMap(s);
+        } else if (entity instanceof SucursalResponseDTO sr) {
+            return sucursalMapper.toAuditMap(sr);
+        }
+        return Map.of();
+    }
 
     @Transactional(readOnly = true) // solo lectura
     public List<SucursalResponseDTO> listarTodas() {
@@ -39,6 +57,7 @@ public class SucursalService {
     }
 
     @Transactional // modifica datos
+    @Auditable(tabla = "sucursal", operacion = "INSERT")
     public SucursalResponseDTO crear(SucursalRequestDTO dto) {
         if (sucursalRepository.existsByCorreo(dto.getCorreo())) {
             throw new RuntimeException("Ya existe una sucursal con ese correo");
@@ -48,6 +67,7 @@ public class SucursalService {
     }
 
     @Transactional // modifica datos
+    @Auditable(tabla = "sucursal", operacion = "UPDATE", idParamName = "id")
     public SucursalResponseDTO actualizar(Long id, SucursalRequestDTO dto) {
         Sucursal sucursal = sucursalRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con id: " + id));
@@ -68,6 +88,7 @@ public class SucursalService {
     }
 
     @Transactional // modifica datos
+    @Auditable(tabla = "sucursal", operacion = "UPDATE", idParamName = "id")
     public void eliminar(Long id) {
         Sucursal sucursal = sucursalRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con id: " + id));
@@ -75,3 +96,4 @@ public class SucursalService {
         sucursalRepository.save(sucursal);
     }
 }
+

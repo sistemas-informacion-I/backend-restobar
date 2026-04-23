@@ -7,6 +7,9 @@ import org.restobar.gaira.modulo_operaciones.entity.Mesa;
 import org.restobar.gaira.modulo_operaciones.entity.Sector;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Component
 public class MesaMapper {
 
@@ -43,5 +46,29 @@ public class MesaMapper {
         if (dto.getActivo() != null) {
             mesa.setActivo(dto.getActivo());
         }
+    }
+
+    public Map<String, Object> toAuditMap(Mesa mesa) {
+        if (mesa == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idMesa", mesa.getIdMesa());
+        map.put("numeroMesa", mesa.getNumeroMesa());
+        map.put("capacidad", mesa.getCapacidadPersonas());
+        map.put("disponibilidad", mesa.getDisponibilidad());
+        map.put("idSector", mesa.getSector() != null ? mesa.getSector().getIdSector() : null);
+        map.put("activo", mesa.getActivo());
+        return map;
+    }
+
+    public Map<String, Object> toAuditMap(MesaDTO dto) {
+        if (dto == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idMesa", dto.getIdMesa());
+        map.put("numeroMesa", dto.getNumeroMesa());
+        map.put("capacidad", dto.getCapacidadPersonas());
+        map.put("disponibilidad", dto.getDisponibilidad());
+        map.put("idSector", dto.getIdSector());
+        map.put("activo", dto.getActivo());
+        return map;
     }
 }

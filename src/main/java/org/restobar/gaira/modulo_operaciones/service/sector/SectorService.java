@@ -1,14 +1,18 @@
 package org.restobar.gaira.modulo_operaciones.service.sector;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.restobar.gaira.modulo_operaciones.dto.sector.SectorRequestDTO;
 import org.restobar.gaira.modulo_operaciones.dto.sector.SectorResponseDTO;
+import org.restobar.gaira.modulo_operaciones.entity.Sector;
 import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.mapper.sector.SectorMapper;
 import org.restobar.gaira.modulo_operaciones.repository.SectorRepository;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
+import org.restobar.gaira.security.audit.annotation.Auditable;
+import org.restobar.gaira.security.audit.util.AuditableService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +20,26 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class SectorService {
+public class SectorService implements AuditableService<Long, Object> {
 
     private final SectorRepository sectorRepository;
     private final SucursalRepository sucursalRepository;
     private final SectorMapper sectorMapper;
+
+    @Override
+    public Object getEntity(Long id) {
+        return sectorRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public Map<String, Object> mapToAudit(Object entity) {
+        if (entity instanceof Sector s) {
+            return sectorMapper.toAuditMap(s);
+        } else if (entity instanceof SectorResponseDTO sr) {
+            return sectorMapper.toAuditMap(sr);
+        }
+        return Map.of();
+    }
 
     @Transactional(readOnly = true)
     public List<SectorResponseDTO> listarTodos() {
@@ -45,6 +64,7 @@ public class SectorService {
     }
 
     @Transactional
+    @Auditable(tabla = "sector", operacion = "INSERT")
     public SectorResponseDTO crear(SectorRequestDTO dto) {
         Sucursal sucursal = sucursalRepository.findById(dto.getIdSucursal())
             .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con id: " + dto.getIdSucursal()));
@@ -58,6 +78,7 @@ public class SectorService {
     }
 
     @Transactional
+    @Auditable(tabla = "sector", operacion = "UPDATE", idParamName = "id")
     public SectorResponseDTO actualizar(Long id, SectorRequestDTO dto) {
         var sector = sectorRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Sector no encontrado con id: " + id));
@@ -70,6 +91,7 @@ public class SectorService {
     }
 
     @Transactional
+    @Auditable(tabla = "sector", operacion = "UPDATE", idParamName = "id")
     public void eliminar(Long id) {
         var sector = sectorRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Sector no encontrado con id: " + id));

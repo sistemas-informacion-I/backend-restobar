@@ -92,12 +92,17 @@ public class UsuarioMapper {
         map.put("idUsuario", usuario.getIdUsuario());
         map.put("ci", usuario.getCi());
         map.put("username", usuario.getUsername());
-        map.put("nombre_completo", usuario.getNombre() + " " + usuario.getApellido());
+        map.put("nombre", usuario.getNombre());
+        map.put("apellido", usuario.getApellido());
+        map.put("telefono", usuario.getTelefono());
+        map.put("sexo", usuario.getSexo());
         map.put("correo", usuario.getCorreo());
+        map.put("direccion", usuario.getDireccion());
         map.put("estado", usuario.getEstadoAcceso());
         map.put("activo", usuario.getActivo());
         return map;
     }
+
 
     public Map<String, Object> toAuditMapLite(Usuario usuario, List<RolUsuario> roles) {
         if (usuario == null)
@@ -119,9 +124,12 @@ public class UsuarioMapper {
         map.put("idUsuario", response.idUsuario());
         map.put("ci", response.ci());
         map.put("username", response.username());
-        map.put("nombre_completo", (response.nombre() != null ? response.nombre() : "") +
-                " " + (response.apellido() != null ? response.apellido() : ""));
+        map.put("nombre", response.nombre());
+        map.put("apellido", response.apellido());
+        map.put("telefono", response.telefono());
+        map.put("sexo", response.sexo());
         map.put("correo", response.correo());
+        map.put("direccion", response.direccion());
         map.put("estado", response.estadoAcceso());
         map.put("activo", response.activo());
         map.put("roles", response.roles() != null
@@ -129,4 +137,5 @@ public class UsuarioMapper {
                 : java.util.List.of());
         return map;
     }
+
 }

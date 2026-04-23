@@ -15,6 +15,7 @@ import org.restobar.gaira.modulo_acceso.repository.EmpleadoRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
+import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,8 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     public Map<String, Object> mapToAudit(Object entity) {
         if (entity instanceof Empleado e) {
             return empleadoMapper.toAuditMap(e);
+        } else if (entity instanceof EmpleadoResponse er) {
+            return empleadoMapper.toAuditMap(er);
         }
         return Map.of();
     }
@@ -67,6 +70,7 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     }
 
     @Transactional
+    @Auditable(tabla = "empleado", operacion = "INSERT")
     public EmpleadoResponse create(EmpleadoRequest request) {
         validateUniqueFields(request, null, null);
 
@@ -105,6 +109,7 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     }
 
     @Transactional
+    @Auditable(tabla = "empleado", operacion = "UPDATE", idParamName = "id")
     public EmpleadoResponse update(Long id, EmpleadoRequest request) {
         Empleado empleado = empleadoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Empleado no encontrado"));
@@ -159,7 +164,9 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     }
 
     @Transactional
+    @Auditable(tabla = "empleado", operacion = "DELETE", idParamName = "id")
     public void delete(Long id) {
+
         Empleado empleado = empleadoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Empleado no encontrado"));
 

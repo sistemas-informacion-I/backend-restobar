@@ -8,6 +8,9 @@ import org.restobar.gaira.modulo_acceso.mapper.usuario.EmpleadoMapper;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.ProveedorMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class PerfilPersonalMapper {
@@ -35,4 +38,36 @@ public class PerfilPersonalMapper {
             usuario.getProveedor() != null ? proveedorMapper.toResponse(usuario.getProveedor()) : null
         );
     }
+
+    public Map<String, Object> toAuditMap(Usuario usuario) {
+        if (usuario == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idUsuario", usuario.getIdUsuario());
+        map.put("ci", usuario.getCi());
+        map.put("username", usuario.getUsername());
+        map.put("nombre", usuario.getNombre());
+        map.put("apellido", usuario.getApellido());
+        map.put("telefono", usuario.getTelefono());
+        map.put("sexo", usuario.getSexo());
+        map.put("correo", usuario.getCorreo());
+        map.put("direccion", usuario.getDireccion());
+        map.put("activo", usuario.getActivo());
+        return map;
+    }
+
+    public Map<String, Object> toAuditMap(PerfilPersonalResponse dto) {
+        if (dto == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idUsuario", dto.idUsuario());
+        map.put("ci", dto.ci());
+        map.put("username", dto.username());
+        map.put("nombre", dto.nombre());
+        map.put("apellido", dto.apellido());
+        map.put("telefono", dto.telefono());
+        map.put("sexo", dto.sexo());
+        map.put("correo", dto.correo());
+        map.put("direccion", dto.direccion());
+        return map;
+    }
 }
+
