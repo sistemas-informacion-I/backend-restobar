@@ -188,9 +188,10 @@ public class LoginService {
     }
 
     @Transactional
-    public void logout(RefreshTokenRequest request) {
+    public void logout(RefreshTokenRequest request, HttpServletRequest httpRequest) {
         sesionRepository.findByRefreshTokenAndFechaCierreIsNull(request.refreshToken())
                 .ifPresent(sesion -> {
+                    logAuditoriaService.logAcceso(sesion.getUsuario(), "usuario", "EJECUTAR", httpRequest, "logout_exitoso");
                     sesion.setFechaCierre(LocalDateTime.now());
                     sesionRepository.save(sesion);
                 });

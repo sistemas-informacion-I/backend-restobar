@@ -45,8 +45,8 @@ public class LoginController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
-        loginService.logout(request);
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request, HttpServletRequest httpRequest) {
+        loginService.logout(request, httpRequest);
         return ResponseEntity.noContent().build();
     }
 
