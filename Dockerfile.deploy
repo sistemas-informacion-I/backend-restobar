@@ -49,4 +49,4 @@ ENTRYPOINT ["sh", "-c", " \
         export DB_USERNAME=\"${DB_CREDS%:*}\"; \
         export DB_PASSWORD=\"${DB_CREDS#*:}\"; \
     fi; \
-    exec java $JAVA_OPTS -cp . -Dserver.port=${PORT:-3000} org.springframework.boot.loader.launch.JarLauncher"]
+    exec java $JAVA_OPTS -cp . -Dserver.port=${PORT:-3000} org.springframework.boot.loader.JarLauncher"]
