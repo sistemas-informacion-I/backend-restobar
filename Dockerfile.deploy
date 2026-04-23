@@ -14,9 +14,9 @@ RUN ./gradlew bootJar --no-daemon -x test
 # Stage 2: Extract layers from the JAR using the new 'tools' jarmode (Spring Boot 3.3+)
 FROM eclipse-temurin:21-jre-alpine AS layers
 WORKDIR /extract
-# Copy specifically the boot jar (non-plain)
-COPY --from=builder /build/build/libs/gaira-*.jar app.jar
-RUN java -Djarmode=tools -jar app.jar extract --layers --destination .
+# Copy JAR outside of /extract to ensure the destination is empty during extraction
+COPY --from=builder /build/build/libs/gaira-*.jar /app.jar
+RUN java -Djarmode=tools -jar /app.jar extract --layers --destination .
 
 # Stage 3: Professional runtime image
 FROM eclipse-temurin:21-jre-alpine
