@@ -1,7 +1,7 @@
 package org.restobar.gaira.security.userdetails;
 
-import org.restobar.gaira.acceso.entity.Usuario;
-import org.restobar.gaira.acceso.repository.UsuarioRepository;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetails;
