@@ -40,6 +40,6 @@ public class Proveedor {
     @Column(name = "correo_contacto", length = 150)
     private String correoContacto;
 
-    @Column(name = "categoria_producto", length = 50)
+    @Column(name = "categoria_prod", length = 50)
     private String categoriaProducto;
 }
