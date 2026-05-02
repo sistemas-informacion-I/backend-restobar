@@ -1,0 +1,90 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: restobar-postgres
+    env_file:
+      - ./backend-lagaira/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - restobar-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend Service
+  backend:
+    image: restobar-backend:dev
+    build:
+      context: ./backend-lagaira
+      dockerfile: Dockerfile.dev
+    container_name: restobar-backend
+    env_file:
+      - ./backend-lagaira/.env
+    environment:
+      # Override
+      DB_URL: jdbc:postgresql://postgres:5432/lagaira
+      SPRING_PROFILES_ACTIVE: dev
+      REDIS_HOST: valkey
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
+    volumes:
+      # Hot-reload
+      - ./backend-lagaira/src:/app/src
+    networks:
+      - restobar-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_started
+    restart: unless-stopped
+
+  # Valkey Service
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: restobar-valkey
+    networks:
+      - restobar-net
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Frontend Service 
+  frontend:
+    image: restobar-frontend:dev
+    build:
+      context: ./frontend-lagaira
+      dockerfile: Dockerfile.dev
+    container_name: restobar-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Hot-reload
+      - ./frontend-lagaira/src:/app/src
+      - ./frontend-lagaira/index.html:/app/index.html
+    networks:
+      - restobar-net
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:3000
+    restart: unless-stopped
+
+networks:
+  restobar-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
