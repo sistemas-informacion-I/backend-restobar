@@ -1,7 +1,10 @@
-package org.restobar.gaira.modulo_acceso.mapper.usuario;
+package org.restobar.gaira.modulo_comercial.mapper;
 
-import org.restobar.gaira.modulo_acceso.dto.usuario.ProveedorResponse;
-import org.restobar.gaira.modulo_acceso.entity.Proveedor;
+import org.restobar.gaira.modulo_comercial.dto.ProveedorCreate;
+import org.restobar.gaira.modulo_comercial.dto.ProveedorResponse;
+import org.restobar.gaira.modulo_comercial.dto.ProveedorUpdate;
+import org.restobar.gaira.modulo_comercial.entity.Proveedor;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +27,37 @@ public class ProveedorMapper {
                 proveedor.getCreadoPor() != null ? proveedor.getCreadoPor().getIdUsuario() : null,
                 proveedor.getCreatedAt(),
                 proveedor.getUpdatedAt());
+    }
+
+    public Proveedor toEntity(ProveedorCreate create, Usuario creadoPor) {
+        if (create == null) return null;
+
+        return Proveedor.builder()
+                .empresa(create.empresa().trim())
+                .nit(create.nit() != null ? create.nit().trim() : null)
+                .nombreContacto(create.nombreContacto().trim())
+                .telefono(create.telefono().trim())
+                .correo(create.correo() != null ? create.correo().trim() : null)
+                .direccion(create.direccion())
+                .categoriaProductos(create.categoriaProductos())
+                .activo(create.activo() == null || create.activo())
+                .creadoPor(creadoPor)
+                .build();
+    }
+
+    public void updateEntityFromDto(Proveedor proveedor, ProveedorUpdate update) {
+        if (proveedor == null || update == null) return;
+
+        proveedor.setEmpresa(update.empresa().trim());
+        proveedor.setNit(update.nit() != null ? update.nit().trim() : null);
+        proveedor.setNombreContacto(update.nombreContacto().trim());
+        proveedor.setTelefono(update.telefono().trim());
+        proveedor.setCorreo(update.correo() != null ? update.correo().trim() : null);
+        proveedor.setDireccion(update.direccion());
+        proveedor.setCategoriaProductos(update.categoriaProductos());
+        if (update.activo() != null) {
+            proveedor.setActivo(update.activo());
+        }
     }
 
     public Map<String, Object> toAuditMap(Proveedor proveedor) {

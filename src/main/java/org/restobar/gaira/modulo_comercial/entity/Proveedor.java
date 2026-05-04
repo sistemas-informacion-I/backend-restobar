@@ -1,12 +1,15 @@
-package org.restobar.gaira.modulo_acceso.entity;
+package org.restobar.gaira.modulo_comercial.entity;
 
 import java.time.LocalDateTime;
+import org.restobar.gaira.modulo_acceso.entity.Usuario;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,10 +37,10 @@ public class Proveedor {
     @Column(name = "id_proveedor")
     private Long id;
 
-    @Column(name = "empresa", nullable = false)
+    @Column(name = "empresa", nullable = false, length = 150)
     private String empresa;
 
-    @Column(name = "nit", unique = true)
+    @Column(name = "nit", unique = true, length = 20)
     private String nit;
 
     @Column(name = "nombre_contacto", nullable = false)
@@ -52,8 +55,9 @@ public class Proveedor {
     @Column(name = "direccion")
     private String direccion;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "categoria_productos")
-    private String categoriaProductos;
+    private CategoriaProducto categoriaProductos;
 
     @Column(name = "activo", nullable = false)
     @Builder.Default

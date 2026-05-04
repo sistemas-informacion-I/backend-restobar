@@ -1,12 +1,13 @@
-package org.restobar.gaira.modulo_acceso.dto.usuario;
+package org.restobar.gaira.modulo_comercial.dto;
 
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.restobar.gaira.modulo_comercial.entity.CategoriaProducto;
+import lombok.Builder;
 
-
-public  record ProveedorRequest(
-
+@Builder
+public record ProveedorUpdate(
         @NotBlank(message = "El nombre de la empresa es obligatorio")
         @Size(max = 150, message = "El nombre de la empresa no puede superar 150 caracteres")
         String empresa,
@@ -29,10 +30,7 @@ public  record ProveedorRequest(
         @Size(max = 200, message = "La dirección no puede superar 200 caracteres")
         String direccion,
 
-        @Size(max = 100, message = "La categoría no puede superar 100 caracteres")
-        String categoriaProductos,
+        CategoriaProducto categoriaProductos,
 
         Boolean activo
 ) {}
-
-

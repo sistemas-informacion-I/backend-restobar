@@ -1,6 +1,7 @@
-package org.restobar.gaira.modulo_acceso.dto.usuario;
+package org.restobar.gaira.modulo_comercial.dto;
 
 import java.time.LocalDateTime;
+import org.restobar.gaira.modulo_comercial.entity.CategoriaProducto;
 
 public record ProveedorResponse(
         Long idProveedor,
@@ -10,7 +11,7 @@ public record ProveedorResponse(
         String telefono,
         String correo,
         String direccion,
-        String categoriaProductos,
+        CategoriaProducto categoriaProductos,
         Boolean activo,
         Long creadoPor,
         LocalDateTime createdAt,
