@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_acceso.seed;
+package org.restobar.gaira.seed;
 
 import java.util.List;
 
