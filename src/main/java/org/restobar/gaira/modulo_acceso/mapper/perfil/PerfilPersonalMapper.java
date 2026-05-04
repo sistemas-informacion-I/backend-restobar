@@ -5,7 +5,6 @@ import org.restobar.gaira.modulo_acceso.dto.perfil.PerfilPersonalResponse;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.ClienteMapper;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.EmpleadoMapper;
-import org.restobar.gaira.modulo_acceso.mapper.usuario.ProveedorMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -17,7 +16,6 @@ public class PerfilPersonalMapper {
 
     private final ClienteMapper clienteMapper;
     private final EmpleadoMapper empleadoMapper;
-    private final ProveedorMapper proveedorMapper;
 
     public PerfilPersonalResponse toResponse(Usuario usuario) {
         if (usuario == null) return null;
@@ -34,8 +32,7 @@ public class PerfilPersonalMapper {
             usuario.getDireccion(),
             usuario.getFechaRegistro(),
             usuario.getCliente() != null ? clienteMapper.toResponse(usuario.getCliente()) : null,
-            usuario.getEmpleado() != null ? empleadoMapper.toResponse(usuario.getEmpleado()) : null,
-            usuario.getProveedor() != null ? proveedorMapper.toResponse(usuario.getProveedor()) : null
+            usuario.getEmpleado() != null ? empleadoMapper.toResponse(usuario.getEmpleado()) : null
         );
     }
 
@@ -70,4 +67,3 @@ public class PerfilPersonalMapper {
         return map;
     }
 }
-

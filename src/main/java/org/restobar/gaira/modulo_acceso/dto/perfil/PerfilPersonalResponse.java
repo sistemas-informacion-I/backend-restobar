@@ -2,7 +2,6 @@ package org.restobar.gaira.modulo_acceso.dto.perfil;
 
 import org.restobar.gaira.modulo_acceso.dto.usuario.ClienteResponse;
 import org.restobar.gaira.modulo_acceso.dto.usuario.EmpleadoResponse;
-import org.restobar.gaira.modulo_acceso.dto.usuario.ProveedorResponse;
 import java.time.LocalDateTime;
 
 public record PerfilPersonalResponse(
@@ -17,6 +16,5 @@ public record PerfilPersonalResponse(
     String direccion,
     LocalDateTime fechaRegistro,
     ClienteResponse cliente,
-    EmpleadoResponse empleado,
-    ProveedorResponse proveedor
+    EmpleadoResponse empleado
 ) {}

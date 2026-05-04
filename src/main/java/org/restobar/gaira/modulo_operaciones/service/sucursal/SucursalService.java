@@ -63,7 +63,7 @@ public class SucursalService implements AuditableService<Long, Object> {
             throw new RuntimeException("Ya existe una sucursal con ese correo");
         }
         Sucursal sucursal = sucursalMapper.toEntity(dto);
-        return sucursalMapper.toResponseDTO(sucursalRepository.save(sucursal));
+        return sucursalMapper.toResponseDTO(sucursalRepository.save(sucursal)); // codigo pred: lo sube a la base de datos
     }
 
     @Transactional // modifica datos
