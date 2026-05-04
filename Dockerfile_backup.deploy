@@ -14,7 +14,7 @@ RUN ./gradlew bootJar --no-daemon -x test
 # Stage 2: Extract layers from the JAR
 FROM eclipse-temurin:21-jre-alpine AS layers
 WORKDIR /extract
-COPY --from=builder /build/build/libs/*.jar app.jar
+COPY --from=builder /build/build/libs/gaira-*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
 # Stage 3: Professional runtime image
@@ -32,8 +32,19 @@ COPY --from=layers --chown=spring:spring /extract/application/ ./
 
 USER spring
 
-# Configuración de memoria adaptada para Cloud Run
+# Environment configuration
 ENV JAVA_OPTS="-XX:+UseParallelGC -Xms256m -Xmx512m -XX:MaxRAMPercentage=75.0 -Duser.timezone=America/La_Paz -Djava.net.preferIPv4Stack=true"
+ENV PORT=3000
+EXPOSE 3000
 
-# Entrypoint limpio de Cloud Run. Usa la variable $PORT que inyecta Google (por defecto 8080)
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} org.springframework.boot.loader.launch.JarLauncher"]
+# Railway Entrypoint: Logic to parse DATABASE_URL (PostgreSQL) into Spring properties
+ENTRYPOINT ["sh", "-c", " \
+    if [ -n \"$DATABASE_URL\" ]; then \
+        URL_WITHOUT_PROTO=\"${DATABASE_URL#*://}\"; \
+        DB_CREDS=\"${URL_WITHOUT_PROTO%@*}\"; \
+        HOST_DB=\"${URL_WITHOUT_PROTO#*@}\"; \
+        export DB_URL=\"jdbc:postgresql://${HOST_DB%/*}/${HOST_DB##*/}\"; \
+        export DB_USERNAME=\"${DB_CREDS%:*}\"; \
+        export DB_PASSWORD=\"${DB_CREDS#*:}\"; \
+    fi; \
+    exec java $JAVA_OPTS -Dserver.port=${PORT:-3000} org.springframework.boot.loader.launch.JarLauncher"]
