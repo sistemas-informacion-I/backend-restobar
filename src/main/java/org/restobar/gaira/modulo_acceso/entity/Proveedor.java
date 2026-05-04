@@ -1,45 +1,73 @@
 package org.restobar.gaira.modulo_acceso.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "proveedor", schema = "public")
-@Data
+@Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Proveedor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_proveedor")
-    private Long idProveedor;
+    private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario", unique = true)
-    private Usuario usuario;
-
-    @NotBlank(message = "Empresa no puede estar vacía")
-    @Column(name = "empresa", nullable = false, length = 200)
+    @Column(name = "empresa", nullable = false)
     private String empresa;
 
-    @NotBlank(message = "NIT no puede estar vacío")
-    @Pattern(regexp = "^\\d{1,13}$", message = "NIT debe contener solo dígitos")
-    @Column(name = "nit", nullable = false, unique = true, length = 20)
+    @Column(name = "nit", unique = true)
     private String nit;
 
-    @Column(name = "nombre_contacto", length = 150)
+    @Column(name = "nombre_contacto", nullable = false)
     private String nombreContacto;
 
-    @Column(name = "telefono_contacto", length = 20)
-    private String telefonoContacto;
+    @Column(name = "telefono", nullable = false)
+    private String telefono;
 
-    @Email(message = "Correo de contacto debe ser válido")
-    @Column(name = "correo_contacto", length = 150)
-    private String correoContacto;
+    @Column(name = "correo", unique = true)
+    private String correo;
 
-    @Column(name = "categoria_producto", length = 50)
-    private String categoriaProducto;
+    @Column(name = "direccion")
+    private String direccion;
+
+    @Column(name = "categoria_productos")
+    private String categoriaProductos;
+
+    @Column(name = "activo", nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creado_por")
+    private Usuario creadoPor;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

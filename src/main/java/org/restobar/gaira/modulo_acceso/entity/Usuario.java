@@ -85,10 +85,6 @@ public class Usuario {
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Empleado empleado;
 
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
-    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Proveedor proveedor;
 
     @EqualsAndHashCode.Exclude
     @ToString.Exclude

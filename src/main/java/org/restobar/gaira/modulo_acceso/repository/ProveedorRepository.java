@@ -1,15 +1,32 @@
 package org.restobar.gaira.modulo_acceso.repository;
 
-import org.restobar.gaira.modulo_acceso.entity.Proveedor;
-import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.util.List;
 import java.util.Optional;
 
-public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
+import org.restobar.gaira.modulo_acceso.entity.Proveedor;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
-    Optional<Proveedor> findByUsuario_IdUsuario(Long idUsuario);
+@Repository
+public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
 
     Optional<Proveedor> findByNit(String nit);
 
     boolean existsByNit(String nit);
+
+    boolean existsByCorreo(String correo);
+
+    @Query("""
+            SELECT p FROM Proveedor p
+            WHERE (:empresa IS NULL OR LOWER(p.empresa) LIKE LOWER(CONCAT('%', :empresa, '%')))
+              AND (:nit IS NULL OR LOWER(p.nit) LIKE LOWER(CONCAT('%', :nit, '%')))
+              AND (:categoria IS NULL OR LOWER(p.categoriaProductos) LIKE LOWER(CONCAT('%', :categoria, '%')))
+            ORDER BY p.empresa ASC
+            """)
+    List<Proveedor> findByFiltros(
+            @Param("empresa") String empresa,
+            @Param("nit") String nit,
+            @Param("categoria") String categoria);
 }
