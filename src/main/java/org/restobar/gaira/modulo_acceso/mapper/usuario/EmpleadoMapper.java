@@ -33,7 +33,15 @@ public class EmpleadoMapper {
                 empleado.getFechaFinalizacion(),
                 usuario != null ? usuario.getRolesUsuario().stream()
                         .map(ru -> ru.getRol().getNombre())
-                        .toList() : java.util.Collections.emptyList());
+                        .toList() : java.util.Collections.emptyList(),
+                empleado.getEmpleadoSucursales().stream()
+                        .filter(es -> Boolean.TRUE.equals(es.getActivo()) && es.getFechaFin() == null)
+                        .map(es -> es.getSucursal().getIdSucursal())
+                        .findFirst().orElse(null),
+                empleado.getEmpleadoSucursales().stream()
+                        .filter(es -> Boolean.TRUE.equals(es.getActivo()) && es.getFechaFin() == null)
+                        .map(es -> es.getSucursal().getNombre())
+                        .findFirst().orElse(null));
     }
 
     public Map<String, Object> toAuditMap(Empleado empleado) {

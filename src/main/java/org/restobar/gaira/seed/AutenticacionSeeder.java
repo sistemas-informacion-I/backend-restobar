@@ -95,13 +95,34 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                 seedPermiso("mesas:create", "MESAS", "CREAR", "Crear mesas"),
                                 seedPermiso("mesas:read", "MESAS", "LEER", "Leer mesas"),
                                 seedPermiso("mesas:update", "MESAS", "ACTUALIZAR", "Actualizar mesas"),
-                                seedPermiso("mesas:delete", "MESAS", "ELIMINAR", "Eliminar mesas"));
+                                seedPermiso("mesas:delete", "MESAS", "ELIMINAR", "Eliminar mesas"),
+                                // --- CICLOS FUTUROS ---
+                                // Inventario
+                                seedPermiso("inventory:read", "INVENTARIO", "LEER", "Ver stock e insumos"),
+                                seedPermiso("inventory:create", "INVENTARIO", "CREAR", "Registrar nuevos insumos"),
+                                seedPermiso("inventory:update", "INVENTARIO", "ACTUALIZAR", "Modificar stock/insumos"),
+                                // Ventas
+                                seedPermiso("sales:create", "VENTAS", "CREAR_VENTA", "Realizar ventas"),
+                                seedPermiso("sales:cancel", "VENTAS", "ANULAR_VENTA", "Anular ventas realizadas"),
+                                seedPermiso("sales:history", "VENTAS", "VER_HISTORIAL", "Ver historial de ventas"),
+                                // Caja
+                                seedPermiso("cash:open", "CAJA", "ABRIR_CAJA", "Abrir turno de caja"),
+                                seedPermiso("cash:close", "CAJA", "CERRAR_CAJA", "Cerrar turno de caja"),
+                                seedPermiso("cash:movements", "CAJA", "VER_MOVIMIENTOS", "Ver flujo de efectivo"));
+
+                Rol superuserRol = rolRepository.findByNombre("SUPERUSER")
+                                .orElseGet(() -> rolRepository.save(Rol.builder()
+                                                .nombre("SUPERUSER")
+                                                .descripcion("Rol superusuario (Acceso Global)")
+                                                .nivelAcceso(100)
+                                                .activo(true)
+                                                .build()));
 
                 Rol adminRol = rolRepository.findByNombre("ADMIN")
                                 .orElseGet(() -> rolRepository.save(Rol.builder()
                                                 .nombre("ADMIN")
-                                                .descripcion("Rol administrador")
-                                                .nivelAcceso(100)
+                                                .descripcion("Rol dueño de sucursal")
+                                                .nivelAcceso(90)
                                                 .activo(true)
                                                 .build()));
 
@@ -113,32 +134,33 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                                 .activo(true)
                                                 .build()));
 
-                for (Permiso permiso : permisosBase) {
-                        if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(adminRol.getIdRol(),
-                                        permiso.getIdPermiso())) {
-                                rolPermisoRepository.save(RolPermiso.builder()
-                                                .rol(adminRol)
-                                                .permiso(permiso)
+                rolRepository.findByNombre("CLIENTE")
+                                .orElseGet(() -> rolRepository.save(Rol.builder()
+                                                .nombre("CLIENTE")
+                                                .descripcion("Rol para clientes del sistema")
+                                                .nivelAcceso(2)
                                                 .activo(true)
-                                                .build());
-                        }
+                                                .build()));
+
+                for (Permiso permiso : permisosBase) {
+                        // Ambos tienen los permisos base definidos en la lista inicial (operaciones)
+                        seedRolPermiso(superuserRol, permiso);
+                        seedRolPermiso(adminRol, permiso);
                 }
 
-                syncAdminPermissions(adminRol);
+                // Superuser: Recibe TODO (incluyendo auditoría, roles y sucursales)
+                syncAllPermissions(superuserRol);
+
+                // Admin: Recibe permisos operativos y de gestión local
+                // (Filtramos para que NO tenga acceso a la infraestructura global)
+                syncOperationalPermissions(adminRol);
 
                 Permiso usuarioLeer = permisoRepository.findByNombre("users:read").orElseThrow();
-                if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(userRol.getIdRol(),
-                                usuarioLeer.getIdPermiso())) {
-                        rolPermisoRepository.save(RolPermiso.builder()
-                                        .rol(userRol)
-                                        .permiso(usuarioLeer)
-                                        .activo(true)
-                                        .build());
-                }
+                seedRolPermiso(userRol, usuarioLeer);
 
-                ensureAdminUser(adminRol);
+                ensureAdminUser(superuserRol);
 
-                // Roles operativos
+                // Roles operativos adicionales
                 seedRol("CAJERO", "Responsable de caja y cobros", 10);
                 seedRol("BARTENDER", "Encargado de la barra y bebidas", 5);
                 seedRol("COCINERO", "Personal de cocina", 5);
@@ -167,17 +189,25 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                                 .build()));
         }
 
-        private void syncAdminPermissions(Rol adminRol) {
+        private void syncAllPermissions(Rol rol) {
                 for (Permiso permiso : permisoRepository.findAll()) {
-                        if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(adminRol.getIdRol(),
-                                        permiso.getIdPermiso())) {
-                                rolPermisoRepository.save(RolPermiso.builder()
-                                                .rol(adminRol)
-                                                .permiso(permiso)
-                                                .activo(true)
-                                                .build());
+                        seedRolPermiso(rol, permiso);
+                }
+        }
+
+        private void syncOperationalPermissions(Rol rol) {
+                // Módulos de infraestructura y seguridad (Solo para Superusuario)
+                List<String> modulosRestringidos = List.of("AUDITORIA", "ROLES", "PERMISOS", "SUCURSALES", "SESIONES", "USUARIOS");
+                
+                for (Permiso permiso : permisoRepository.findAll()) {
+                        if (!modulosRestringidos.contains(permiso.getModulo())) {
+                                seedRolPermiso(rol, permiso);
                         }
                 }
+
+                // El ADMIN necesita ver Sucursales y Roles para gestionar su personal, pero NO editarlos
+                permisoRepository.findByNombre("sucursales:read").ifPresent(p -> seedRolPermiso(rol, p));
+                permisoRepository.findByNombre("roles:read").ifPresent(p -> seedRolPermiso(rol, p));
         }
 
         private void ensureAdminUser(Rol adminRol) {
@@ -190,6 +220,7 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                                 .passwordHash(passwordEncoder.encode(adminPassword))
                                                 .sexo("O")
                                                 .correo(adminEmail)
+                                                .tipoUsuario("S")
                                                 .intentosFallidos(0)
                                                 .estadoAcceso("HABILITADO")
                                                 .activo(true)
@@ -204,4 +235,14 @@ public class AutenticacionSeeder implements CommandLineRunner {
                                         .build());
                 }
         }
+    private void seedRolPermiso(Rol rol, Permiso permiso) {
+        if (!rolPermisoRepository.existsByRol_IdRolAndPermiso_IdPermiso(rol.getIdRol(),
+                permiso.getIdPermiso())) {
+            rolPermisoRepository.save(RolPermiso.builder()
+                    .rol(rol)
+                    .permiso(permiso)
+                    .activo(true)
+                    .build());
+        }
+    }
 }

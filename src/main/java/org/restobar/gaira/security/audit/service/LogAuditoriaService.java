@@ -9,6 +9,7 @@ import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.restobar.gaira.modulo_acceso.mapper.auditoria.LogAuditoriaMapper;
 import org.restobar.gaira.modulo_acceso.repository.LogAuditoriaRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
+import org.restobar.gaira.security.utils.SecurityUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -30,12 +31,22 @@ public class LogAuditoriaService {
     private final LogAuditoriaRepository logAuditoriaRepository;
     private final LogAuditoriaMapper logAuditoriaMapper;
     private final UsuarioRepository usuarioRepository;
+    private final SecurityUtils securityUtils;
 
     @Transactional(readOnly = true)
     public Page<LogAuditoriaResponse> findAll(AuditoriaFilter filter) {
+        Usuario actor = securityUtils.getCurrentUser();
+        Long idSucursalFiltro = filter.idSucursal();
+
+        // REGLA DE VISIBILIDAD:
+        // Si el usuario es ADMIN (E), forzamos el filtro de SU sucursal.
+        if (actor != null && "E".equals(actor.getTipoUsuario())) {
+            idSucursalFiltro = obtenerIdSucursalUsuario(actor);
+        }
+
         var spec = LogAuditoriaRepository.buildFrom(
                 filter.tabla(), filter.operacion(), filter.idUsuario(),
-                filter.desde(), filter.hasta());
+                idSucursalFiltro, filter.desde(), filter.hasta());
 
         PageRequest pageable = PageRequest.of(
                 filter.page(), filter.size(),
@@ -63,6 +74,7 @@ public class LogAuditoriaService {
                     .operacion(operacion)
                     .idRegistro(usuarioReferencia != null ? String.valueOf(usuarioReferencia.getIdUsuario()) : null)
                     .usuario(usuarioReferencia)
+                    .idSucursal(obtenerIdSucursalUsuario(usuarioReferencia))
                     .ipOrigen(request != null ? extractIp(request) : null)
                     .userAgent(request != null ? request.getHeader("User-Agent") : null)
                     .datosNuevos(Map.of("resultado", descripcion))
@@ -86,6 +98,7 @@ public class LogAuditoriaService {
                     .datosAnteriores(datosAnteriores)
                     .datosNuevos(datosNuevos)
                     .usuario(usuarioReferencia)
+                    .idSucursal(obtenerIdSucursalUsuario(usuarioReferencia))
                     .ipOrigen(request != null ? extractIp(request) : null)
                     .userAgent(request != null ? request.getHeader("User-Agent") : null)
                     .build();
@@ -109,5 +122,16 @@ public class LogAuditoriaService {
             return null;
         }
         return usuarioRepository.findById(usuario.getIdUsuario()).orElse(null);
+    }
+
+    private Long obtenerIdSucursalUsuario(Usuario usuario) {
+        if (usuario == null || usuario.getEmpleado() == null) {
+            return null;
+        }
+        // Retornamos la primera sucursal asociada al empleado
+        return usuario.getEmpleado().getEmpleadoSucursales().stream()
+                .map(es -> es.getSucursal().getIdSucursal())
+                .findFirst()
+                .orElse(null);
     }
 }

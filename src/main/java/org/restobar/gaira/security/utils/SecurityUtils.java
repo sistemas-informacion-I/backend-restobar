@@ -11,9 +11,12 @@ import org.springframework.stereotype.Component;
 public class SecurityUtils {
 
     private final UsuarioRepository usuarioRepository;
+    private final org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository;
 
-    public SecurityUtils(UsuarioRepository usuarioRepository) {
+    public SecurityUtils(UsuarioRepository usuarioRepository, 
+                        org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.empleadoSucursalRepository = empleadoSucursalRepository;
     }
 
     /**
@@ -45,5 +48,21 @@ public class SecurityUtils {
             return principal.getIdUsuario();
         }
         return null;
+    }
+
+    /**
+     * Obtiene el ID de la sucursal actual para el usuario autenticado.
+     * Útil para filtrar datos en modo Administrador.
+     */
+    public Long getCurrentSucursalId() {
+        Long idUsuario = getCurrentUserId();
+        if (idUsuario == null) return null;
+
+        // Buscamos la sucursal activa del empleado asociado al usuario
+        return empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuario(idUsuario).stream()
+                .filter(es -> Boolean.TRUE.equals(es.getActivo()) && es.getFechaFin() == null)
+                .map(es -> es.getSucursal().getIdSucursal())
+                .findFirst()
+                .orElse(null);
     }
 }

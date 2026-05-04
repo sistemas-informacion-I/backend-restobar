@@ -27,6 +27,7 @@ public class ApplicationUserPrincipal implements UserDetails {
     private final String username;
     private final String email;
     private final String password;
+    private final String tipoUsuario; // 'S', 'E', 'C'
     private final boolean enabled;
     private final boolean accountNonLocked;
     private final Collection<? extends GrantedAuthority> authorities;
@@ -35,6 +36,7 @@ public class ApplicationUserPrincipal implements UserDetails {
             String username,
             String email,
             String password,
+            String tipoUsuario,
             boolean enabled,
             boolean accountNonLocked,
             Collection<? extends GrantedAuthority> authorities) {
@@ -42,6 +44,7 @@ public class ApplicationUserPrincipal implements UserDetails {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.tipoUsuario = tipoUsuario;
         this.enabled = enabled;
         this.accountNonLocked = accountNonLocked;
         this.authorities = authorities;
@@ -85,6 +88,7 @@ public class ApplicationUserPrincipal implements UserDetails {
                 usuario.getUsername(),
                 usuario.getCorreo(),
                 usuario.getPasswordHash(),
+                usuario.getTipoUsuario(),
                 enabled,
                 nonLocked,
                 grantedAuthorities);

@@ -25,4 +25,16 @@ public class SucursalResponseDTO { // sin validaciones
     private String departamento;
     private String estadoOperativo;
     private Boolean activo;
+    private Long idResponsable;
+    private String nombreResponsable;
+    private java.util.List<EmpleadoDetalleDTO> empleados;
+
+    @Getter
+    @Setter
+    @Builder
+    public static class EmpleadoDetalleDTO {
+        private Long idUsuario;
+        private String nombreCompleto;
+        private String rol;
+    }
 }

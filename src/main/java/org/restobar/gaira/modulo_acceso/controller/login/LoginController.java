@@ -73,6 +73,7 @@ public class LoginController {
                 "idUsuario", principal.getIdUsuario(),
                 "username", principal.getUsername(),
                 "email", principal.getEmail(),
+                "tipoUsuario", principal.getTipoUsuario(),
                 "authorities", principal.getAuthorities().stream().map(a -> a.getAuthority()).toList()));
     }
 }
