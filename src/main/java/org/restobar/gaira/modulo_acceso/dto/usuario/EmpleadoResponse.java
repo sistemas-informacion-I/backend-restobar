@@ -21,5 +21,7 @@ public record EmpleadoResponse(
                 String turno,
                 LocalDate fechaContratacion,
                 LocalDate fechaFinalizacion,
-                java.util.List<String> roles) {
+                java.util.List<String> roles,
+                Long idSucursal,
+                String nombreSucursal) {
 }

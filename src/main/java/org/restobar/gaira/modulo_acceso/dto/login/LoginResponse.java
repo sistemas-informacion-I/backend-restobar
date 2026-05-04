@@ -11,5 +11,7 @@ public record LoginResponse(
                 String refreshToken,
                 UsuarioResponse user,
                 String username,
+                String tipoUsuario, // Identidad del usuario (S, E, C)
+                Long sucursalId,    // ID de sucursal para empleados (E)
                 List<String> roles) {
 }

@@ -17,6 +17,7 @@ public record UsuarioResponse(
                 Integer intentosFallidos,
                 String estadoAcceso,
                 LocalDateTime fechaRegistro,
+                String tipoUsuario,
                 Boolean activo,
                 java.util.List<org.restobar.gaira.modulo_acceso.dto.rol.RolResponse> roles) {
 }

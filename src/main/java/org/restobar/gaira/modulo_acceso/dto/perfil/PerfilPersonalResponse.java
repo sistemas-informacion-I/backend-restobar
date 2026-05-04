@@ -15,6 +15,7 @@ public record PerfilPersonalResponse(
     String correo,
     String direccion,
     LocalDateTime fechaRegistro,
+    String tipoUsuario,
     ClienteResponse cliente,
     EmpleadoResponse empleado
 ) {}

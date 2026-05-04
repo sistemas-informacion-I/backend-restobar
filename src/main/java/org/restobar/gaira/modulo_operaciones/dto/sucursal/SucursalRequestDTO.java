@@ -32,4 +32,5 @@ public class SucursalRequestDTO { // con validaciones, llega del front
     private String ciudad;
     private String departamento;
     private String estadoOperativo;
+    private Long idUsuarioResponsable;
 }

@@ -31,6 +31,7 @@ public class PerfilPersonalMapper {
             usuario.getCorreo(),
             usuario.getDireccion(),
             usuario.getFechaRegistro(),
+            usuario.getTipoUsuario(),
             usuario.getCliente() != null ? clienteMapper.toResponse(usuario.getCliente()) : null,
             usuario.getEmpleado() != null ? empleadoMapper.toResponse(usuario.getEmpleado()) : null
         );
