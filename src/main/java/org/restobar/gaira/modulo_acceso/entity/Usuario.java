@@ -70,6 +70,17 @@ public class Usuario {
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
+    /**
+     * Identidad del usuario: 
+     * 'S' = Superusuario (Global, sin extensión)
+     * 'E' = Empleado (Local, requiere extensión Empleado)
+     * 'C' = Cliente (Consumidor, requiere extensión Cliente)
+     */
+    @NotBlank(message = "Tipo de usuario no puede estar vacío")
+    @Pattern(regexp = "[SEC]", message = "Tipo de usuario debe ser S, E o C")
+    @Column(name = "tipo_usuario", nullable = false, length = 1)
+    private String tipoUsuario;
+
     @Builder.Default
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;

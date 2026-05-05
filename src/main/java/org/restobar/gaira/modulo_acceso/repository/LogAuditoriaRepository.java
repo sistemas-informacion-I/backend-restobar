@@ -30,6 +30,12 @@ public interface LogAuditoriaRepository
                                 : cb.equal(root.join("usuario", JoinType.LEFT).get("idUsuario"), idUsuario);
         }
 
+        static Specification<LogAuditoria> porSucursal(Long idSucursal) {
+                return (root, query, cb) -> idSucursal == null
+                                ? cb.conjunction()
+                                : cb.equal(root.get("idSucursal"), idSucursal);
+        }
+
         static Specification<LogAuditoria> porRangoFechas(LocalDateTime desde, LocalDateTime hasta) {
                 return (root, query, cb) -> {
                         if (desde != null && hasta != null) {
@@ -44,11 +50,12 @@ public interface LogAuditoriaRepository
         }
 
         static Specification<LogAuditoria> buildFrom(
-                        String tabla, String operacion, Long idUsuario,
+                        String tabla, String operacion, Long idUsuario, Long idSucursal,
                         LocalDateTime desde, LocalDateTime hasta) {
                 return porTabla(tabla)
                                 .and(porOperacion(operacion))
                                 .and(porUsuario(idUsuario))
+                                .and(porSucursal(idSucursal))
                                 .and(porRangoFechas(desde, hasta));
         }
 }

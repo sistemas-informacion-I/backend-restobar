@@ -14,6 +14,7 @@ public record UsuarioUpdate(
                 String sexo,
                 @Email(message = "Correo debe ser válido") String correo,
                 String direccion,
+                String tipoUsuario,
                 Boolean activo,
                 String estadoAcceso,
                 List<Long> roles) {

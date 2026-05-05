@@ -38,6 +38,7 @@ public class UsuarioMapper {
                 .intentosFallidos(usuario.getIntentosFallidos())
                 .estadoAcceso(usuario.getEstadoAcceso())
                 .fechaRegistro(usuario.getFechaRegistro())
+                .tipoUsuario(usuario.getTipoUsuario())
                 .activo(usuario.getActivo())
                 .roles(usuario.getRolesUsuario().stream()
                         .filter(ru -> Boolean.TRUE.equals(ru.getActivo()))
@@ -62,6 +63,7 @@ public class UsuarioMapper {
                 .direccion(create.direccion())
                 .activo(create.activo() == null || create.activo())
                 .estadoAcceso(create.estadoAcceso() != null ? create.estadoAcceso() : "HABILITADO")
+                .tipoUsuario(create.tipoUsuario())
                 .intentosFallidos(0)
                 .build();
     }
@@ -98,6 +100,7 @@ public class UsuarioMapper {
         map.put("sexo", usuario.getSexo());
         map.put("correo", usuario.getCorreo());
         map.put("direccion", usuario.getDireccion());
+        map.put("tipoUsuario", usuario.getTipoUsuario());
         map.put("estado", usuario.getEstadoAcceso());
         map.put("activo", usuario.getActivo());
         return map;
@@ -130,6 +133,7 @@ public class UsuarioMapper {
         map.put("sexo", response.sexo());
         map.put("correo", response.correo());
         map.put("direccion", response.direccion());
+        map.put("tipoUsuario", response.tipoUsuario());
         map.put("estado", response.estadoAcceso());
         map.put("activo", response.activo());
         map.put("roles", response.roles() != null

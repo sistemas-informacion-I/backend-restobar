@@ -21,5 +21,6 @@ public record EmpleadoRequest(
                 String turno,
                 LocalDate fechaContratacion,
                 LocalDate fechaFinalizacion,
-                List<Long> roles) {
+                List<Long> roles,
+                Long idSucursal) {
 }

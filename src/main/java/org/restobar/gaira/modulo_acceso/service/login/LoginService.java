@@ -16,6 +16,9 @@ import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.UsuarioMapper;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.login.SesionRepository;
+import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
+import org.restobar.gaira.modulo_operaciones.entity.EmpleadoSucursal;
+import org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository;
 import org.restobar.gaira.security.audit.service.LogAuditoriaService;
 import org.restobar.gaira.security.jwt.JwtService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
@@ -54,6 +57,7 @@ public class LoginService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final UsuarioMapper usuarioMapper;
     private final EmailService emailService;
+    private final EmpleadoSucursalRepository empleadoSucursalRepository;
 
     @Autowired
     @Lazy
@@ -78,7 +82,8 @@ public class LoginService {
             JwtService jwtService,
             RedisTemplate<String, Object> redisTemplate,
             UsuarioMapper usuarioMapper,
-            EmailService emailService) {
+            EmailService emailService,
+            EmpleadoSucursalRepository empleadoSucursalRepository) {
         this.usuarioRepository = usuarioRepository;
         this.sesionRepository = sesionRepository;
         this.logAuditoriaService = logAuditoriaService;
@@ -87,6 +92,7 @@ public class LoginService {
         this.redisTemplate = redisTemplate;
         this.usuarioMapper = usuarioMapper;
         this.emailService = emailService;
+        this.empleadoSucursalRepository = empleadoSucursalRepository;
     }
 
     @Transactional
@@ -136,7 +142,16 @@ public class LoginService {
         self.resetearIntentos(usuario);
         safeRedisDelete(REDIS_LOCK_PREFIX + username);
 
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
+        // Identificar sucursal si es empleado
+        Long sucursalId = null;
+        if ("E".equals(usuario.getTipoUsuario())) {
+            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
+                    .map(EmpleadoSucursal::getSucursal)
+                    .map(Sucursal::getIdSucursal)
+                    .orElse(null);
+        }
+
+        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario, sucursalId);
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = UUID.randomUUID().toString();
 
@@ -148,6 +163,8 @@ public class LoginService {
                 refreshToken,
                 usuarioMapper.toResponse(usuario),
                 usuario.getUsername(),
+                usuario.getTipoUsuario(),
+                sucursalId,
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 
@@ -167,7 +184,16 @@ public class LoginService {
                 .findActiveByUsernameWithAuthorities(sesion.getUsuario().getUsername())
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no válido o inactivo"));
 
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
+        // Identificar sucursal si es empleado
+        Long sucursalId = null;
+        if ("E".equals(usuario.getTipoUsuario())) {
+            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
+                    .map(EmpleadoSucursal::getSucursal)
+                    .map(Sucursal::getIdSucursal)
+                    .orElse(null);
+        }
+
+        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario, sucursalId);
         String newAccessToken = jwtService.generateToken(principal);
         String newRefreshToken = UUID.randomUUID().toString();
 
@@ -184,6 +210,8 @@ public class LoginService {
                 newRefreshToken,
                 usuarioMapper.toResponse(usuario),
                 usuario.getUsername(),
+                usuario.getTipoUsuario(),
+                sucursalId,
                 principal.getAuthorities().stream().map(a -> a.getAuthority()).toList());
     }
 

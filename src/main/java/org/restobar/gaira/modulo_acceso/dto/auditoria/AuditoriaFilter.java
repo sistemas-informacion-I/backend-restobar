@@ -8,6 +8,7 @@ public record AuditoriaFilter(
         String tabla,
         String operacion,
         Long idUsuario,
+        Long idSucursal,
         LocalDateTime desde,
         LocalDateTime hasta,
         int page,

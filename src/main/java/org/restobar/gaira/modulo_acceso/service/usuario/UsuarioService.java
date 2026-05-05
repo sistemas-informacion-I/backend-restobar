@@ -93,6 +93,7 @@ public class UsuarioService implements AuditableService<Long, Object> {
             usuario.setUsername(request.ci());
         }
 
+        validarTipoUsuario(request.tipoUsuario());
         usuarioRepository.save(usuario);
 
         if (request.roles() != null && !request.roles().isEmpty()) {
@@ -107,6 +108,11 @@ public class UsuarioService implements AuditableService<Long, Object> {
     public UsuarioResponse update(Long id, UsuarioUpdate request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
+
+        // Protección de Superusuario: Nadie puede tocar a un Superusuario
+        if ("S".equals(usuario.getTipoUsuario())) {
+            throw new ResponseStatusException(BAD_REQUEST, "No se puede modificar una cuenta de nivel Superusuario");
+        }
 
         if (!usuario.getCi().equals(request.ci()) && usuarioRepository.existsByCi(request.ci())) {
             throw new ResponseStatusException(CONFLICT, "CI ya registrado");
@@ -171,6 +177,11 @@ public class UsuarioService implements AuditableService<Long, Object> {
     public void delete(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuario no encontrado"));
+
+        if ("S".equals(usuario.getTipoUsuario())) {
+            throw new ResponseStatusException(BAD_REQUEST, "No se puede eliminar una cuenta de nivel Superusuario");
+        }
+
         usuarioRepository.delete(usuario);
     }
 
@@ -193,6 +204,13 @@ public class UsuarioService implements AuditableService<Long, Object> {
                 && !ESTADO_SUSPENDIDO.equals(estado)) {
             throw new ResponseStatusException(BAD_REQUEST,
                     "Estado de acceso inválido. Valores aceptados: HABILITADO, SUSPENDIDO, BLOQUEADO");
+        }
+    }
+
+    private void validarTipoUsuario(String tipo) {
+        if (!"S".equals(tipo) && !"E".equals(tipo) && !"C".equals(tipo)) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Tipo de usuario inválido. Valores aceptados: S (Superuser), E (Empleado), C (Cliente)");
         }
     }
 }

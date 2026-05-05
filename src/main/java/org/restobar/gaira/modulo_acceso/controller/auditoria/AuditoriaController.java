@@ -35,13 +35,14 @@ public class AuditoriaController {
             @RequestParam(required = false) String tabla,
             @RequestParam(required = false) String operacion,
             @RequestParam(required = false) Long idUsuario,
+            @RequestParam(required = false) Long idSucursal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         AuditoriaFilter filter = new AuditoriaFilter(
-                tabla, operacion, idUsuario, desde, hasta, page, size);
+                tabla, operacion, idUsuario, idSucursal, desde, hasta, page, size);
         return ResponseEntity.ok(logAuditoriaService.findAll(filter));
     }
 

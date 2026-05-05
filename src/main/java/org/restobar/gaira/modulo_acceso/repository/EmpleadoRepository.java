@@ -14,4 +14,7 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, Long> {
     boolean existsByCodigoEmpleado(String codigoEmpleado);
 
     boolean existsByUsuario_IdUsuario(Long idUsuario);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT e FROM Empleado e JOIN e.empleadoSucursales es WHERE es.sucursal.idSucursal = :idSucursal AND es.activo = true AND es.fechaFin IS NULL")
+    java.util.List<Empleado> findBySucursalId(Long idSucursal);
 }

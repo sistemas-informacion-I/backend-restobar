@@ -10,6 +10,10 @@ import org.restobar.gaira.modulo_acceso.entity.Empleado;
 import org.restobar.gaira.modulo_acceso.entity.Rol;
 import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_operaciones.entity.EmpleadoSucursal;
+import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
+import org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository;
+import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.modulo_acceso.mapper.usuario.EmpleadoMapper;
 import org.restobar.gaira.modulo_acceso.repository.EmpleadoRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolRepository;
@@ -17,6 +21,7 @@ import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
+import org.restobar.gaira.security.utils.SecurityUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +41,12 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     private final EmpleadoRepository empleadoRepository;
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final RolUsuarioRepository rolUsuarioRepository;
     private final EmpleadoMapper empleadoMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmpleadoSucursalRepository empleadoSucursalRepository;
+    private final SucursalRepository sucursalRepository;
+    private final RolUsuarioRepository rolUsuarioRepository;
+    private final SecurityUtils securityUtils;
 
     @Override
     public Object getEntity(Long id) {
@@ -57,9 +65,21 @@ public class EmpleadoService implements AuditableService<Long, Object> {
 
     @Transactional(readOnly = true)
     public List<EmpleadoResponse> findAll() {
-        return empleadoRepository.findAll().stream()
-                .map(empleadoMapper::toResponse)
-                .toList();
+        Usuario currentUser = securityUtils.getCurrentUser();
+        if (currentUser == null) return List.of();
+
+        if (currentUser.getTipoUsuario().equals("S")) {
+            return empleadoRepository.findAll().stream()
+                    .map(empleadoMapper::toResponse)
+                    .toList();
+        } else {
+            Long idSucursal = securityUtils.getCurrentSucursalId();
+            if (idSucursal == null) return List.of();
+            
+            return empleadoRepository.findBySucursalId(idSucursal).stream()
+                    .map(empleadoMapper::toResponse)
+                    .toList();
+        }
     }
 
     @Transactional(readOnly = true)
@@ -87,6 +107,7 @@ public class EmpleadoService implements AuditableService<Long, Object> {
                 .sexo(request.sexo())
                 .correo(request.correo())
                 .direccion(request.direccion())
+                .tipoUsuario("E")
                 .activo(request.activo() == null || request.activo())
                 .estadoAcceso("HABILITADO")
                 .intentosFallidos(0)
@@ -105,7 +126,34 @@ public class EmpleadoService implements AuditableService<Long, Object> {
                 .build();
 
         empleado = empleadoRepository.save(empleado);
+
+        vincularASucursal(empleado, request.idSucursal());
+
         return empleadoMapper.toResponse(empleado);
+    }
+
+    private void vincularASucursal(Empleado empleado, Long idSucursalRequest) {
+        Usuario currentUser = securityUtils.getCurrentUser();
+        Long idSucursalFinal = null;
+
+        if (currentUser != null && currentUser.getTipoUsuario().equals("S")) {
+            idSucursalFinal = idSucursalRequest;
+        } else {
+            idSucursalFinal = securityUtils.getCurrentSucursalId();
+        }
+
+        if (idSucursalFinal != null) {
+            Sucursal sucursal = sucursalRepository.findById(idSucursalFinal)
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Sucursal no encontrada"));
+
+            EmpleadoSucursal es = EmpleadoSucursal.builder()
+                    .empleado(empleado)
+                    .sucursal(sucursal)
+                    .fechaAsignacion(LocalDate.now())
+                    .activo(true)
+                    .build();
+            empleadoSucursalRepository.save(es);
+        }
     }
 
     @Transactional
@@ -113,6 +161,9 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     public EmpleadoResponse update(Long id, EmpleadoRequest request) {
         Empleado empleado = empleadoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Empleado no encontrado"));
+
+        Usuario currentUser = securityUtils.getCurrentUser();
+        validarPropiedadEmpleado(empleado, currentUser);
 
         Usuario usuario = empleado.getUsuario();
         if (usuario == null) {
@@ -140,7 +191,6 @@ public class EmpleadoService implements AuditableService<Long, Object> {
 
         usuarioRepository.save(usuario);
 
-        // Si el codigo fue enviado y es diferente, lo cambiamos, si no, mantenemos el anterior
         if (request.codigoEmpleado() != null && !request.codigoEmpleado().isBlank()) {
             empleado.setCodigoEmpleado(request.codigoEmpleado().trim());
         }
@@ -166,17 +216,42 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     @Transactional
     @Auditable(tabla = "empleado", operacion = "DELETE", idParamName = "id")
     public void delete(Long id) {
-
         Empleado empleado = empleadoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Empleado no encontrado"));
 
-        Usuario usuario = empleado.getUsuario();
-        empleadoRepository.delete(empleado);
+        Usuario currentUser = securityUtils.getCurrentUser();
+        validarPropiedadEmpleado(empleado, currentUser);
 
+        empleado.setFechaFinalizacion(LocalDate.now());
+        empleadoRepository.save(empleado);
+
+        Usuario usuario = empleado.getUsuario();
         if (usuario != null) {
-            List<RolUsuario> roles = rolUsuarioRepository.findByUsuario_IdUsuario(usuario.getIdUsuario());
-            rolUsuarioRepository.deleteAll(roles);
-            usuarioRepository.delete(usuario);
+            usuario.setActivo(false);
+            usuarioRepository.save(usuario);
+        }
+
+        empleado.getEmpleadoSucursales().stream()
+                .filter(es -> Boolean.TRUE.equals(es.getActivo()) && es.getFechaFin() == null)
+                .forEach(es -> {
+                    es.setActivo(false);
+                    es.setFechaFin(LocalDate.now());
+                    empleadoSucursalRepository.save(es);
+                });
+    }
+
+    private void validarPropiedadEmpleado(Empleado empleado, Usuario currentUser) {
+        if (currentUser == null) throw new ResponseStatusException(NOT_FOUND, "Usuario no autenticado");
+        if (currentUser.getTipoUsuario().equals("S")) return;
+
+        Long idSucursalAdmin = securityUtils.getCurrentSucursalId();
+        if (idSucursalAdmin == null) throw new ResponseStatusException(BAD_REQUEST, "El administrador no tiene sucursal asociada");
+
+        boolean pertenece = empleado.getEmpleadoSucursales().stream()
+                .anyMatch(es -> es.getSucursal().getIdSucursal().equals(idSucursalAdmin) && Boolean.TRUE.equals(es.getActivo()));
+
+        if (!pertenece) {
+            throw new ResponseStatusException(BAD_REQUEST, "No tiene permisos para gestionar empleados fuera de su sucursal");
         }
     }
 
@@ -238,7 +313,7 @@ public class EmpleadoService implements AuditableService<Long, Object> {
     }
 
     private String resolvePassword(String password) {
-        return (password != null && !password.isBlank()) ? password : "Cambio123!";
+        return (password != null && !password.isBlank()) ? password : "Empleado123*";
     }
 
     private String generateCodigoEmpleado(String ci) {

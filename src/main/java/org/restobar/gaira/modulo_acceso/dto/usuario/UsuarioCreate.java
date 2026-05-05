@@ -18,6 +18,7 @@ public record UsuarioCreate(
                 @NotNull(message = "Sexo no puede ser nulo") String sexo,
                 @Email(message = "Correo debe ser válido") String correo,
                 String direccion,
+                @NotBlank(message = "Tipo de usuario no puede estar vacío") String tipoUsuario,
                 Boolean activo,
                 String estadoAcceso,
                 List<Long> roles) {

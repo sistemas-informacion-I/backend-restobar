@@ -109,6 +109,11 @@ public class RolService implements AuditableService<Long, Object> {
         Rol rol = rolRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Rol no encontrado"));
 
+        if ("SUPERUSER".equals(rol.getNombre())) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "El rol SUPERUSER es crítico para el sistema y no puede ser modificado");
+        }
+
         if (!rol.getNombre().equals(request.nombre()) && rolRepository.existsByNombre(request.nombre())) {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
                     "Ya existe un rol con ese nombre");
@@ -148,6 +153,12 @@ public class RolService implements AuditableService<Long, Object> {
     public void delete(Long id) {
         Rol rol = rolRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Rol no encontrado"));
+
+        if ("SUPERUSER".equals(rol.getNombre())) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "El rol SUPERUSER no puede ser eliminado");
+        }
+
         rolRepository.delete(rol);
     }
 
