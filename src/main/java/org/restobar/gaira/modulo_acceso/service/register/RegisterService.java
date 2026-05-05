@@ -126,7 +126,7 @@ public class RegisterService {
                 .orElseThrow(() -> new ResponseStatusException(INTERNAL_SERVER_ERROR,
                         "No se pudo cargar usuario registrado"));
 
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuarioConAuthorities);
+        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuarioConAuthorities, null);
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = UUID.randomUUID().toString();
 

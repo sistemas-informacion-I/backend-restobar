@@ -14,9 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ApplicationUserDetailsService implements UserDetailsService {
 
     private final UsuarioRepository usuarioRepository;
+    private final org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository;
 
-    public ApplicationUserDetailsService(UsuarioRepository usuarioRepository) {
+    public ApplicationUserDetailsService(UsuarioRepository usuarioRepository, 
+            org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.empleadoSucursalRepository = empleadoSucursalRepository;
     }
 
     @Override
@@ -37,6 +40,14 @@ public class ApplicationUserDetailsService implements UserDetailsService {
             throw new DisabledException("Cuenta suspendida");
         }
 
-        return ApplicationUserPrincipal.from(usuario);
+        Long sucursalId = null;
+        if ("E".equals(usuario.getTipoUsuario())) {
+            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
+                    .map(org.restobar.gaira.modulo_operaciones.entity.EmpleadoSucursal::getSucursal)
+                    .map(org.restobar.gaira.modulo_operaciones.entity.Sucursal::getIdSucursal)
+                    .orElse(null);
+        }
+
+        return ApplicationUserPrincipal.from(usuario, sucursalId);
     }
 }

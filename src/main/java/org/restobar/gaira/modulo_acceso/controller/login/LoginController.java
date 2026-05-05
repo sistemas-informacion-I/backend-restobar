@@ -74,6 +74,7 @@ public class LoginController {
                 "username", principal.getUsername(),
                 "email", principal.getEmail(),
                 "tipoUsuario", principal.getTipoUsuario(),
+                "sucursalId", principal.getSucursalId() != null ? principal.getSucursalId() : "",
                 "authorities", principal.getAuthorities().stream().map(a -> a.getAuthority()).toList()));
     }
 }

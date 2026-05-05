@@ -39,6 +39,7 @@ public class JwtService {
                 .expiration(expiresAt)
                 .claim("uid", principal.getIdUsuario())
                 .claim("email", principal.getEmail())
+                .claim("sid", principal.getSucursalId())
                 .claim("authorities", principal.getAuthorities().stream().map(a -> a.getAuthority()).toList())
                 .signWith(getSigningKey())
                 .compact();
