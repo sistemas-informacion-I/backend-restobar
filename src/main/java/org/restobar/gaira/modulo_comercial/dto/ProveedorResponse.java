@@ -1,7 +1,7 @@
 package org.restobar.gaira.modulo_comercial.dto;
 
 import java.time.LocalDateTime;
-import org.restobar.gaira.modulo_comercial.entity.CategoriaProducto;
+import org.restobar.gaira.modulo_comercial.entity.Proveedor.CategoriaProducto;
 
 public record ProveedorResponse(
         Long idProveedor,

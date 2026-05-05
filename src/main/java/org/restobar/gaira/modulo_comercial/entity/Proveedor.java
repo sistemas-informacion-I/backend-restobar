@@ -32,6 +32,16 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Proveedor {
 
+    public enum CategoriaProducto {
+        BEBIDAS,
+        ALIMENTOS,
+        INSUMOS,
+        LIMPIEZA,
+        UTENSILIOS,
+        SERVICIOS,
+        OTROS
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_proveedor")

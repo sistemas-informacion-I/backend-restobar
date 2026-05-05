@@ -3,7 +3,7 @@ package org.restobar.gaira.modulo_comercial.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.restobar.gaira.modulo_comercial.entity.CategoriaProducto;
+import org.restobar.gaira.modulo_comercial.entity.Proveedor.CategoriaProducto;
 import lombok.Builder;
 
 @Builder
