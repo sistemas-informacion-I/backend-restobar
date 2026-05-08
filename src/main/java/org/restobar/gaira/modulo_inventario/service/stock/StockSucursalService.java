@@ -6,15 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.time.LocalDate;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-
-import org.restobar.gaira.modulo_inventario.dto.lote.LoteRequest;
-import org.restobar.gaira.modulo_inventario.dto.lote.LoteResponse;
 import org.restobar.gaira.modulo_inventario.dto.stock.StockSucursalRequest;
 import org.restobar.gaira.modulo_inventario.dto.stock.StockSucursalResponse;
 import org.restobar.gaira.modulo_inventario.dto.stock.StockAjusteRequest;
@@ -60,9 +52,9 @@ public class StockSucursalService implements AuditableService<Long, Object> {
     @Override
     public Map<String, Object> mapToAudit(Object entity) {
         if (entity instanceof StockSucursal s) {
-            return stockMapper.mapToAudit(s);
-        } else if (entity instanceof LoteInventario l) {
-            return loteMapper.mapToAudit(l);
+            return stockMapper.toAuditMap(s);
+        } else if (entity instanceof StockSucursalResponse sr) {
+            return stockMapper.toAuditMap(sr);
         }
         return Map.of();
     }
@@ -89,112 +81,9 @@ public class StockSucursalService implements AuditableService<Long, Object> {
         Sucursal sucursal = sucursalRepository.findById(dto.getIdSucursal())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada"));
 
-        StockSucursal stock = StockSucursal.builder()
-                .inventario(inventario)
-                .sucursal(sucursal)
-                .cantidad(BigDecimal.ZERO)
-                .cantidadMinima(dto.getCantidadMinima() != null ? dto.getCantidadMinima() : BigDecimal.ZERO)
-                .cantidadMaxima(dto.getCantidadMaxima())
-                .ubicacionAlmacen(dto.getUbicacionAlmacen())
-                .activo(true)
-                .build();
+        StockSucursal stock = stockMapper.toEntity(dto, inventario, sucursal);
 
         return stockMapper.toResponse(stockRepository.save(stock));
-    }
-
-    @Transactional
-    @Auditable(tabla = "lote_inventario", operacion = "INSERT")
-    public LoteResponse agregarLote(LoteRequest dto) {
-        StockSucursal stock = stockRepository.findById(dto.getIdStock())
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de stock no encontrado"));
-
-        if (dto.getCantidad().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad del lote debe ser mayor a cero");
-        }
-
-        if (dto.getFechaVencimiento() != null && dto.getFechaVencimiento().isBefore(java.time.LocalDate.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "No se puede registrar un lote con fecha de vencimiento pasada");
-        }
-
-        LoteInventario lote = LoteInventario.builder()
-                .stockSucursal(stock)
-                .numeroLote(dto.getNumeroLote())
-                .cantidad(dto.getCantidad())
-                .fechaIngreso(dto.getFechaIngreso() != null ? dto.getFechaIngreso() : java.time.LocalDate.now())
-                .fechaVencimiento(dto.getFechaVencimiento())
-                .precioCompra(dto.getPrecioCompra())
-                .estado(dto.getEstado() != null ? dto.getEstado() : EstadoLote.DISPONIBLE)
-                .build();
-
-        lote = loteRepository.save(lote);
-
-        // Actualizar Stock solo si el lote queda DISPONIBLE
-        if (lote.getEstado() == EstadoLote.DISPONIBLE) {
-            actualizarStockPorNuevoLote(stock, lote);
-        }
-
-        return loteMapper.toResponse(lote);
-    }
-
-    @Transactional
-    @Auditable(tabla = "lote_inventario", operacion = "UPDATE", idParamName = "idLote")
-    public LoteResponse actualizarEstadoLote(Long idLote, EstadoLote nuevoEstado) {
-        LoteInventario lote = loteRepository.findById(idLote)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lote no encontrado"));
-
-        EstadoLote estadoAnterior = lote.getEstado();
-        lote.setEstado(nuevoEstado);
-        lote = loteRepository.save(lote);
-
-        StockSucursal stock = lote.getStockSucursal();
-
-        // Si el lote pasa de DISPONIBLE a un estado de baja (VENCIDO/DAÑADO/AGOTADO),
-        // restamos del stock
-        if (estadoAnterior == EstadoLote.DISPONIBLE && nuevoEstado != EstadoLote.DISPONIBLE) {
-            BigDecimal nuevaCantidad = stock.getCantidad().subtract(lote.getCantidad());
-            if (nuevaCantidad.compareTo(BigDecimal.ZERO) < 0) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "No se puede dar de baja el lote: la cantidad supera el stock disponible registrado");
-            }
-            stock.setCantidad(nuevaCantidad);
-            stockRepository.save(stock);
-        }
-        // Si el lote vuelve a estar DISPONIBLE (corrección), sumamos al stock
-        else if (estadoAnterior != EstadoLote.DISPONIBLE && nuevoEstado == EstadoLote.DISPONIBLE) {
-            stock.setCantidad(stock.getCantidad().add(lote.getCantidad()));
-            stockRepository.save(stock);
-        }
-
-        return loteMapper.toResponse(lote);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<LoteResponse> listarLotes(Long idStock, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size,
-                Sort.by("fechaIngreso").descending().and(Sort.by("idLote").descending()));
-        return loteRepository.findByStockSucursalIdStock(idStock, pageable)
-                .map(loteMapper::toResponse);
-    }
-
-    private void actualizarStockPorNuevoLote(StockSucursal stock, LoteInventario lote) {
-        BigDecimal cantidadActual = stock.getCantidad();
-        BigDecimal nuevaCantidad = cantidadActual.add(lote.getCantidad());
-
-        // Cálculo de precio promedio ponderado
-        BigDecimal valorInventarioActual = cantidadActual.multiply(stock.getPrecioPromedio());
-        BigDecimal valorNuevoLote = lote.getCantidad().multiply(lote.getPrecioCompra());
-        BigDecimal valorTotal = valorInventarioActual.add(valorNuevoLote);
-
-        if (nuevaCantidad.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal nuevoPrecioPromedio = valorTotal.divide(nuevaCantidad, 4, RoundingMode.HALF_UP);
-            stock.setPrecioPromedio(nuevoPrecioPromedio);
-        }
-
-        stock.setCantidad(nuevaCantidad);
-        stock.setPrecioUnitario(lote.getPrecioCompra()); // El último precio de compra se asume como unitario actual
-        stockRepository.save(stock);
     }
 
     @Transactional
@@ -273,15 +162,7 @@ public class StockSucursalService implements AuditableService<Long, Object> {
                     "La compra debe tener cantidad positiva");
         }
 
-        LoteInventario lote = LoteInventario.builder()
-                .stockSucursal(stock)
-                .numeroLote(dto.getNumeroLote())
-                .cantidad(dto.getCantidad())
-                .fechaIngreso(dto.getFechaIngreso() != null ? dto.getFechaIngreso() : LocalDate.now())
-                .fechaVencimiento(dto.getFechaVencimiento())
-                .precioCompra(dto.getPrecioCompra())
-                .estado(EstadoLote.DISPONIBLE)
-                .build();
+        LoteInventario lote = loteMapper.toEntity(dto, stock);
 
         loteRepository.save(lote);
     }
@@ -361,7 +242,8 @@ public class StockSucursalService implements AuditableService<Long, Object> {
 
     // Recalcula el stock total y precios a partir de los lotes que siguen
     // disponibles.
-    private StockSucursal recalcularStockDesdeLotes(Long idStock) {
+    @Transactional
+    public StockSucursal recalcularStockDesdeLotes(Long idStock) {
         StockSucursal stock = stockRepository.findById(idStock)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Registro de stock no encontrado"));

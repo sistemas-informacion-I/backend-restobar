@@ -1,5 +1,6 @@
 package org.restobar.gaira.modulo_inventario.mapper.inventario;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.restobar.gaira.modulo_inventario.dto.inventario.InventarioRequest;
@@ -22,6 +23,17 @@ public class InventarioMapper {
                 .build();
     }
 
+    public void updateEntity(Inventario entity, InventarioRequest dto) {
+        if (entity == null || dto == null) return;
+
+        entity.setNombre(dto.getNombre());
+        entity.setDescripcion(dto.getDescripcion());
+        entity.setUnidadMedida(dto.getUnidadMedida());
+        entity.setMarca(dto.getMarca());
+        entity.setEsRehutilizable(dto.getEsRehutilizable());
+        entity.setActivo(dto.getActivo());
+    }
+
     public InventarioResponse toResponse(Inventario entity) {
         InventarioResponse response = new InventarioResponse();
         response.setIdInventario(entity.getIdInventario());
@@ -36,11 +48,33 @@ public class InventarioMapper {
         return response;
     }
 
-    public Map<String, Object> mapToAudit(Inventario entity) {
-        return Map.of(
-            "id", entity.getIdInventario(),
-            "codigo", entity.getCodigo(),
-            "nombre", entity.getNombre()
-        );
+    public Map<String, Object> toAuditMap(Inventario entity) {
+        if (entity == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idInventario", entity.getIdInventario());
+        map.put("codigo", entity.getCodigo());
+        map.put("nombre", entity.getNombre());
+        map.put("descripcion", entity.getDescripcion());
+        map.put("unidadMedida", entity.getUnidadMedida());
+        map.put("marca", entity.getMarca());
+        map.put("esRehutilizable", entity.isEsRehutilizable());
+        map.put("activo", entity.isActivo());
+        map.put("fechaCreacion", entity.getFechaCreacion());
+        return map;
+    }
+
+    public Map<String, Object> toAuditMap(InventarioResponse response) {
+        if (response == null) return Map.of();
+        Map<String, Object> map = new HashMap<>();
+        map.put("idInventario", response.getIdInventario());
+        map.put("codigo", response.getCodigo());
+        map.put("nombre", response.getNombre());
+        map.put("descripcion", response.getDescripcion());
+        map.put("unidadMedida", response.getUnidadMedida());
+        map.put("marca", response.getMarca());
+        map.put("esRehutilizable", response.getEsRehutilizable());
+        map.put("activo", response.getActivo());
+        map.put("fechaCreacion", response.getFechaCreacion());
+        return map;
     }
 }
