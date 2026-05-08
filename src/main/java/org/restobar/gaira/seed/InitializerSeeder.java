@@ -64,6 +64,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("MESAS", "mesas", List.of("create", "read", "update", "delete"));
 
         seedModulo("INVENTARIO", "inventario", List.of("create", "read", "update", "delete"));
+        seedModulo("CATEGORIAS", "categories", List.of("create", "read", "update"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -113,7 +114,7 @@ public class InitializerSeeder implements CommandLineRunner {
     private void syncAdminPermissions(Rol rol) {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
-            "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
+            "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
             "SECTORES", "MESAS"
         );
         
