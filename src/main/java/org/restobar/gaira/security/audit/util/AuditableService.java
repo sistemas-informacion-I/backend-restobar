@@ -17,6 +17,14 @@ public interface AuditableService<ID, E> {
     E getEntity(ID id);
 
     /**
+     * Busca la entidad por su ID y tabla lógica auditada. Por defecto delega en
+     * getEntity para mantener compatibilidad con servicios de una sola entidad.
+     */
+    default E getEntity(ID id, String tabla) {
+        return getEntity(id);
+    }
+
+    /**
      * Convierte la entidad a un mapa de auditoría con los campos relevantes.
      */
     Map<String, Object> mapToAudit(E entity);

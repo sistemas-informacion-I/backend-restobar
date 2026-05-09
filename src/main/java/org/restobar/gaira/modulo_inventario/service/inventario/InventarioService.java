@@ -33,7 +33,10 @@ public class InventarioService implements AuditableService<Long, Object> {
     @Override
     public Map<String, Object> mapToAudit(Object entity) {
         if (entity instanceof Inventario inv) {
-            return inventarioMapper.mapToAudit(inv);
+            return inventarioMapper.toAuditMap(inv);
+        }
+        if (entity instanceof InventarioResponse response) {
+            return inventarioMapper.toAuditMap(response);
         }
         return Map.of();
     }
@@ -68,12 +71,7 @@ public class InventarioService implements AuditableService<Long, Object> {
         Inventario inventario = inventarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Insumo no encontrado"));
 
-        inventario.setNombre(dto.getNombre());
-        inventario.setDescripcion(dto.getDescripcion());
-        inventario.setUnidadMedida(dto.getUnidadMedida());
-        inventario.setMarca(dto.getMarca());
-        inventario.setEsRehutilizable(dto.getEsRehutilizable());
-        inventario.setActivo(dto.getActivo());
+        inventarioMapper.updateEntity(inventario, dto);
 
         return inventarioMapper.toResponse(inventarioRepository.save(inventario));
     }

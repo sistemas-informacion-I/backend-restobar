@@ -2,9 +2,9 @@ package org.restobar.gaira.modulo_comercial.controller;
 
 import java.util.List;
 
-import org.restobar.gaira.modulo_comercial.dto.ProveedorCreate;
-import org.restobar.gaira.modulo_comercial.dto.ProveedorResponse;
-import org.restobar.gaira.modulo_comercial.dto.ProveedorUpdate;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorCreate;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorResponse;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorUpdate;
 import org.restobar.gaira.modulo_comercial.service.ProveedorService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.springframework.http.HttpStatus;

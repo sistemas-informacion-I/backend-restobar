@@ -1,8 +1,8 @@
 package org.restobar.gaira.modulo_comercial.mapper;
 
-import org.restobar.gaira.modulo_comercial.dto.ProveedorCreate;
-import org.restobar.gaira.modulo_comercial.dto.ProveedorResponse;
-import org.restobar.gaira.modulo_comercial.dto.ProveedorUpdate;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorCreate;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorResponse;
+import org.restobar.gaira.modulo_comercial.dto.proveedor.ProveedorUpdate;
 import org.restobar.gaira.modulo_comercial.entity.Proveedor;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
 import org.springframework.stereotype.Component;

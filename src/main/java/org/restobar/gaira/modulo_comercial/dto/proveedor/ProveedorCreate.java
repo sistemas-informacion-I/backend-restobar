@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_comercial.dto;
+package org.restobar.gaira.modulo_comercial.dto.proveedor;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
