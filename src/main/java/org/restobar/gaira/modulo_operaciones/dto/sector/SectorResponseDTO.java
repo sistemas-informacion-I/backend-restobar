@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class SectorResponseDTO {
+public class SectorResponseDTO { // para la base
     private Long idSector;
     private String nombre;
     private String descripcion;

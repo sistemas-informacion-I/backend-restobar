@@ -57,7 +57,7 @@ public class Sucursal {
     private String telefono;
 
     @Email(message = "Correo de sucursal debe ser válido")
-    @Column(name = "correo", length = 150) // se aumento a unique
+    @Column(name = "correo", length = 150)
     private String correo;
 
     @Column(name = "horario_apertura")
