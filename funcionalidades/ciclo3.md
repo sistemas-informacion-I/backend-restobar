@@ -69,14 +69,14 @@ Crear, modificar, supervisar y cerrar comandas (órdenes de servicio) en cualqui
 ### Tablas implicadas
 | Tabla              | Operación                                     | Motivo |
 |--------------------|-----------------------------------------------|--------|
-| `comanda`          | Inserción, actualización, consulta            | Cabecera de la orden |
-| `detalle_comanda`  | Inserción, actualización, borrado lógico      | Líneas de productos |
-| `producto_final`   | Lectura                                       | Mostrar menú y precios |
-| `producto_sucursal`| Lectura (precio, disponibilidad)              | Precio de la sucursal |
-| `mesa`             | Lectura y actualización (cambiar estado)      | Ocupar/liberar mesa |
-| `cliente`          | Lectura (o inserción si se crea nuevo)        | Asignar cliente a la comanda |
-| `sucursal`         | Lectura                                       | Sucursal de la comanda |
-| `log_auditoria`    | Inserción                                     | Auditoría |
+| [`comanda`](../bd-example/RESTOBAR.sql#L476)          | Inserción, actualización, consulta            | Cabecera de la orden |
+| [`detalle_comanda`](../bd-example/RESTOBAR.sql#L598)  | Inserción, actualización, borrado lógico      | Líneas de productos |
+| [`producto_final`](../bd-example/RESTOBAR.sql#L146)   | Lectura                                       | Mostrar menú y precios |
+| [`producto_sucursal`](../bd-example/RESTOBAR.sql#L226)| Lectura (precio, disponibilidad)              | Precio de la sucursal |
+| [`mesa`](../bd-example/RESTOBAR.sql#L418)             | Lectura y actualización (cambiar estado)      | Ocupar/liberar mesa |
+| [`cliente`](../bd-example/RESTOBAR.sql#L55)          | Lectura (o inserción si se crea nuevo)        | Asignar cliente a la comanda |
+| [`sucursal`](../bd-example/RESTOBAR.sql#L210)         | Lectura                                       | Sucursal de la comanda |
+| [`log_auditoria`](../bd-example/RESTOBAR.sql#L238)    | Inserción                                     | Auditoría |
 
 ### Dependencias
 - **Ciclo 1:** Sucursales (CU06), Mesas (CU28), Sectores (CU27), Clientes (CU29).  
@@ -127,15 +127,15 @@ Convertir una comanda de salón o para llevar en una venta formal, seleccionando
 ### Tablas implicadas
 | Tabla                | Operación                           | Motivo |
 |----------------------|-------------------------------------|--------|
-| `comanda`            | Lectura, actualización (estado)     | Obtener datos, cerrar |
-| `detalle_comanda`    | Lectura                             | Obtener items |
-| `nota_venta`         | Inserción                           | Cabecera de la venta |
-| `detalle_nota_venta` | Inserción                           | Líneas de la venta |
-| `metodo_pago`        | Lectura                             | Selección de método |
-| `cliente`            | Lectura (y actualización de puntos) | Cliente para factura |
-| `producto_sucursal`  | Lectura                             | Precios y costos |
-| `mesa`               | Actualización (liberar)             | Si la comanda era en mesa |
-| `log_auditoria`      | Inserción                           | Auditoría |
+| [`comanda`](../bd-example/RESTOBAR.sql#L476)            | Lectura, actualización (estado)     | Obtener datos, cerrar |
+| [`detalle_comanda`](../bd-example/RESTOBAR.sql#L598)    | Lectura                             | Obtener items |
+| [`nota_venta`](../bd-example/RESTOBAR.sql#L505)         | Inserción                           | Cabecera de la venta |
+| [`detalle_nota_venta`](../bd-example/RESTOBAR.sql#L535) | Inserción                           | Líneas de la venta |
+| [`metodo_pago`](../bd-example/RESTOBAR.sql#L200)        | Lectura                             | Selección de método |
+| [`cliente`](../bd-example/RESTOBAR.sql#L55)            | Lectura (y actualización de puntos) | Cliente para factura |
+| [`producto_sucursal`](../bd-example/RESTOBAR.sql#L226)  | Lectura                             | Precios y costos |
+| [`mesa`](../bd-example/RESTOBAR.sql#L418)               | Actualización (liberar)             | Si la comanda era en mesa |
+| [`log_auditoria`](../bd-example/RESTOBAR.sql#L238)      | Inserción                           | Auditoría |
 
 ### Dependencias
 - **Ciclo 2:** Recetas (para obtener costo unitario).
@@ -181,9 +181,9 @@ Permitir que el administrador configure qué productos se muestran al cliente en
 ### Tablas implicadas
 | Tabla              | Operación          | Motivo |
 |--------------------|--------------------|--------|
-| `producto_final`   | Lectura, actualización (Admin) | Datos del producto |
-| `producto_sucursal`| Lectura, actualización (Admin) | Precio, disponibilidad |
-| `categoria`        | Lectura            | Navegación y filtros |
+| [`producto_final`](../bd-example/RESTOBAR.sql#L146)   | Lectura, actualización (Admin) | Datos del producto |
+| [`producto_sucursal`](../bd-example/RESTOBAR.sql#L226)| Lectura, actualización (Admin) | Precio, disponibilidad |
+| [`categoria`](../bd-example/RESTOBAR.sql#L134)        | Lectura            | Navegación y filtros |
 
 ### Dependencias
 - **Ciclo 2:** Productos finales (CU09) y Categorías (CU08).
@@ -237,13 +237,13 @@ Permitir al cliente acumular productos de una sucursal y luego convertirlos en u
 ### Tablas implicadas
 | Tabla              | Operación                                        | Motivo |
 |--------------------|--------------------------------------------------|--------|
-| `carrito_compras`  | Inserción, actualización (historial)             | Registro físico solo al convertir |
-| `item_carrito`     | Inserción (historial)                            | Detalle físico solo al convertir |
-| `producto_final`   | Lectura                                          | Validar existencia y mostrar datos |
-| `producto_sucursal`| Lectura (precio, disponibilidad)                 | Validación y precio actual |
-| `comanda`          | Inserción (al convertir)                         | Generar pedido online |
-| `detalle_comanda`  | Inserción (copiar items)                         | Detalle de la comanda |
-| `cliente`          | Lectura                                          | Cliente autenticado |
+| [`carrito_compras`](../bd-example/RESTOBAR.sql#L255)  | Inserción, actualización (historial)             | Registro físico solo al convertir |
+| [`item_carrito`](../bd-example/RESTOBAR.sql#L269)     | Inserción (historial)                            | Detalle físico solo al convertir |
+| [`producto_final`](../bd-example/RESTOBAR.sql#L146)   | Lectura                                          | Validar existencia y mostrar datos |
+| [`producto_sucursal`](../bd-example/RESTOBAR.sql#L226)| Lectura (precio, disponibilidad)                 | Validación y precio actual |
+| [`comanda`](../bd-example/RESTOBAR.sql#L476)          | Inserción (al convertir)                         | Generar pedido online |
+| [`detalle_comanda`](../bd-example/RESTOBAR.sql#L598)  | Inserción (copiar items)                         | Detalle de la comanda |
+| [`cliente`](../bd-example/RESTOBAR.sql#L55)          | Lectura                                          | Cliente autenticado |
 
 ### Dependencias
 - **Ciclo 2:** Productos (CU09).
@@ -292,12 +292,12 @@ Este CU se divide en dos partes:
 ### Tablas implicadas
 | Tabla                | Operación                           | Motivo |
 |----------------------|-------------------------------------|--------|
-| `nota_venta`         | Inserción, actualización            | Registro de la venta online |
-| `detalle_nota_venta` | Inserción                           | Detalle de la venta |
-| `transaccion_online` | Inserción, actualización            | Control y estado del pago electrónico |
-| `metodo_pago`        | Lectura, actualización (Admin)      | Configuración de pasarelas |
-| `comanda`            | Lectura, actualización (estado)     | Origen del pedido |
-| `cliente`            | Lectura                             | Datos del pagador |
+| [`nota_venta`](../bd-example/RESTOBAR.sql#L505)         | Inserción, actualización            | Registro de la venta online |
+| [`detalle_nota_venta`](../bd-example/RESTOBAR.sql#L535) | Inserción                           | Detalle de la venta |
+| [`transaccion_online`](../bd-example/RESTOBAR.sql#L552) | Inserción, actualización            | Control y estado del pago electrónico |
+| [`metodo_pago`](../bd-example/RESTOBAR.sql#L200)        | Lectura, actualización (Admin)      | Configuración de pasarelas |
+| [`comanda`](../bd-example/RESTOBAR.sql#L476)            | Lectura, actualización (estado)     | Origen del pedido |
+| [`cliente`](../bd-example/RESTOBAR.sql#L55)            | Lectura                             | Datos del pagador |
 
 ### Dependencias
 - **Ciclo 3:** Comanda online (CU20), Ventas (CU15) para la estructura de la nota.
@@ -347,12 +347,12 @@ Pantalla de cocina/barra que muestra los ítems pendientes, permite avanzar su e
 ### Tablas implicadas
 | Tabla                | Operación                            | Motivo |
 |----------------------|--------------------------------------|--------|
-| `comanda`            | Lectura, actualización (estado)      | Cabecera de la orden |
-| `detalle_comanda`    | Lectura, actualización               | Cambio de estado de items |
-| `receta` / `ingrediente_receta` | Lectura                      | Obtener insumos a descontar |
-| `stock_sucursal`     | Actualización (cantidad)             | Descontar inventario real |
-| `lote_inventario`    | Lectura / Actualización              | Aplicar FIFO de lotes |
-| `log_auditoria`      | Inserción                            | Auditoría de movimientos |
+| [`comanda`](../bd-example/RESTOBAR.sql#L476)            | Lectura, actualización (estado)      | Cabecera de la orden |
+| [`detalle_comanda`](../bd-example/RESTOBAR.sql#L598)    | Lectura, actualización               | Cambio de estado de items |
+| [`receta`](../bd-example/RESTOBAR.sql#L174) / [`ingrediente_receta`](../bd-example/RESTOBAR.sql#L188) | Lectura                      | Obtener insumos a descontar |
+| [`stock_sucursal`](../bd-example/RESTOBAR.sql#L282)     | Actualización (cantidad)             | Descontar inventario real |
+| [`lote_inventario`](../bd-example/RESTOBAR.sql#L301)    | Lectura / Actualización              | Aplicar FIFO de lotes |
+| [`log_auditoria`](../bd-example/RESTOBAR.sql#L238)      | Inserción                            | Auditoría de movimientos |
 
 ### Dependencias
 - **Ciclo 2:** Recetas (CU10) e Inventario (CU07).
