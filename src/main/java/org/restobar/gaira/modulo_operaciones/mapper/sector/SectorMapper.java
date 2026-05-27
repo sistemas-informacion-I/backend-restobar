@@ -12,7 +12,7 @@ import java.util.Map;
 @Component
 public class SectorMapper {
 
-    public SectorResponseDTO toResponseDTO(Sector s) {
+    public SectorResponseDTO toResponseDTO(Sector s) { // front -> back
         return SectorResponseDTO.builder()
                 .idSector(s.getIdSector())
                 .nombre(s.getNombre())
@@ -24,7 +24,7 @@ public class SectorMapper {
                 .build();
     }
 
-    public Sector toEntity(SectorRequestDTO dto, Sucursal sucursal) {
+    public Sector toEntity(SectorRequestDTO dto, Sucursal sucursal) { // back -> front
         return Sector.builder()
                 .nombre(dto.getNombre())
                 .descripcion(dto.getDescripcion())
@@ -33,7 +33,7 @@ public class SectorMapper {
                 .build();
     }
 
-    public Map<String, Object> toAuditMap(Sector sector) {
+    public Map<String, Object> toAuditMap(Sector sector) { //esto es para la auditoria
         if (sector == null) return Map.of();
         Map<String, Object> map = new HashMap<>();
         map.put("idSector", sector.getIdSector());

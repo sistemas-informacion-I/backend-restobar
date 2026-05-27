@@ -485,7 +485,7 @@ CREATE TABLE comanda (
     fecha_apertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     fecha_cierre TIMESTAMP,
     numero_personas INTEGER CHECK (numero_personas IS NULL OR numero_personas > 0),
-    estado VARCHAR(30) DEFAULT 'ABIERTA' NOT NULL CHECK (estado IN ('ABIERTA', 'EN_PREPARACION', 'LISTA', 'ENTREGADA', 'CERRADA', 'CANCELADA')),
+    estado VARCHAR(30) DEFAULT 'ABIERTA' NOT NULL CHECK (estado IN ('PENDIENTE_PAGO', 'ABIERTA', 'EN_PREPARACION', 'LISTA', 'ENTREGADA', 'CERRADA', 'CANCELADA')),
     observaciones TEXT,
     FOREIGN KEY (id_sucursal) REFERENCES sucursal(id_sucursal),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE SET NULL,

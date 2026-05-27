@@ -1,5 +1,7 @@
 HELP.md
 
+uploads/*
+
 ### Build outputs ###
 .gradle/
 build/

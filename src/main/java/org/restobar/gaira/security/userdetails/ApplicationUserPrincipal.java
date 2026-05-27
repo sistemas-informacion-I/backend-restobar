@@ -28,6 +28,7 @@ public class ApplicationUserPrincipal implements UserDetails {
     private final String email;
     private final String password;
     private final String tipoUsuario; // 'S', 'E', 'C'
+    private final Long sucursalId;    // Para empleados
     private final boolean enabled;
     private final boolean accountNonLocked;
     private final Collection<? extends GrantedAuthority> authorities;
@@ -37,6 +38,7 @@ public class ApplicationUserPrincipal implements UserDetails {
             String email,
             String password,
             String tipoUsuario,
+            Long sucursalId,
             boolean enabled,
             boolean accountNonLocked,
             Collection<? extends GrantedAuthority> authorities) {
@@ -45,6 +47,7 @@ public class ApplicationUserPrincipal implements UserDetails {
         this.email = email;
         this.password = password;
         this.tipoUsuario = tipoUsuario;
+        this.sucursalId = sucursalId;
         this.enabled = enabled;
         this.accountNonLocked = accountNonLocked;
         this.authorities = authorities;
@@ -54,7 +57,7 @@ public class ApplicationUserPrincipal implements UserDetails {
      * Construye el principal directamente desde el Usuario (que ahora contiene
      * username, passwordHash, intentosFallidos y estadoAcceso).
      */
-    public static ApplicationUserPrincipal from(Usuario usuario) {
+    public static ApplicationUserPrincipal from(Usuario usuario, Long sucursalId) {
         LocalDateTime now = LocalDateTime.now();
 
         Set<GrantedAuthority> grantedAuthorities = Optional.ofNullable(usuario.getRolesUsuario())
@@ -89,6 +92,7 @@ public class ApplicationUserPrincipal implements UserDetails {
                 usuario.getCorreo(),
                 usuario.getPasswordHash(),
                 usuario.getTipoUsuario(),
+                sucursalId,
                 enabled,
                 nonLocked,
                 grantedAuthorities);

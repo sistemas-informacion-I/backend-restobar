@@ -142,7 +142,16 @@ public class LoginService {
         self.resetearIntentos(usuario);
         safeRedisDelete(REDIS_LOCK_PREFIX + username);
 
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
+        // Identificar sucursal si es empleado
+        Long sucursalId = null;
+        if ("E".equals(usuario.getTipoUsuario())) {
+            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
+                    .map(EmpleadoSucursal::getSucursal)
+                    .map(Sucursal::getIdSucursal)
+                    .orElse(null);
+        }
+
+        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario, sucursalId);
         String accessToken = jwtService.generateToken(principal);
         String refreshToken = UUID.randomUUID().toString();
 
@@ -184,7 +193,16 @@ public class LoginService {
                 .findActiveByUsernameWithAuthorities(sesion.getUsuario().getUsername())
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuario no válido o inactivo"));
 
-        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario);
+        // Identificar sucursal si es empleado
+        Long sucursalId = null;
+        if ("E".equals(usuario.getTipoUsuario())) {
+            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
+                    .map(EmpleadoSucursal::getSucursal)
+                    .map(Sucursal::getIdSucursal)
+                    .orElse(null);
+        }
+
+        ApplicationUserPrincipal principal = ApplicationUserPrincipal.from(usuario, sucursalId);
         String newAccessToken = jwtService.generateToken(principal);
         String newRefreshToken = UUID.randomUUID().toString();
 

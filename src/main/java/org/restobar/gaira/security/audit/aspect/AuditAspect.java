@@ -53,7 +53,7 @@ public class AuditAspect {
         Map<String, Object> stateAntes = null;
         if (("UPDATE".equals(operacion) || "DELETE".equals(operacion)) && id != null) {
             try {
-                Object entityAntes = service.getEntity(id);
+                Object entityAntes = service.getEntity(id, auditable.tabla());
                 if (entityAntes != null) {
                     stateAntes = service.mapToAudit(entityAntes);
                 }
@@ -92,7 +92,7 @@ public class AuditAspect {
                 // Fallback a consulta por ID para métodos que retornan void o DTO sin campos
                 // auditables.
                 if ((stateDespues == null || stateDespues.isEmpty()) && idFinal != null) {
-                    Object entityDespues = service.getEntity(idFinal);
+                    Object entityDespues = service.getEntity(idFinal, auditable.tabla());
                     if (entityDespues != null) {
                         stateDespues = service.mapToAudit(entityDespues);
                     }

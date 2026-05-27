@@ -1,13 +1,13 @@
-package org.restobar.gaira.modulo_comercial.dto;
+package org.restobar.gaira.modulo_comercial.dto.proveedor;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.restobar.gaira.modulo_comercial.entity.CategoriaProducto;
+import org.restobar.gaira.modulo_comercial.entity.Proveedor.CategoriaProducto;
 import lombok.Builder;
 
 @Builder
-public record ProveedorCreate(
+public record ProveedorUpdate(
         @NotBlank(message = "El nombre de la empresa es obligatorio")
         @Size(max = 150, message = "El nombre de la empresa no puede superar 150 caracteres")
         String empresa,

@@ -7,11 +7,13 @@ import org.restobar.gaira.modulo_acceso.dto.perfil.PerfilPersonalResponse;
 import org.restobar.gaira.modulo_acceso.dto.perfil.PerfilPersonalUpdate;
 import org.restobar.gaira.modulo_acceso.service.perfil.PerfilPersonalService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/perfil")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class PerfilPersonalController {
 
     private final PerfilPersonalService service;
