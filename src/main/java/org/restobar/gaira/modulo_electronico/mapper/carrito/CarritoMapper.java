@@ -1,9 +1,9 @@
-package org.restobar.gaira.modulo_carrito.mapper;
+package org.restobar.gaira.modulo_electronico.mapper.carrito;
 
-import org.restobar.gaira.modulo_carrito.dto.carrito.CarritoResponse;
-import org.restobar.gaira.modulo_carrito.dto.item.ItemCarritoResponse;
-import org.restobar.gaira.modulo_carrito.entity.CarritoCompras;
-import org.restobar.gaira.modulo_carrito.entity.ItemCarrito;
+import org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse;
+import org.restobar.gaira.modulo_electronico.dto.item.ItemCarritoResponse;
+import org.restobar.gaira.modulo_electronico.entity.CarritoCompras;
+import org.restobar.gaira.modulo_electronico.entity.ItemCarrito;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

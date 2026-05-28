@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.dto.item;
+package org.restobar.gaira.modulo_electronico.dto.item;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

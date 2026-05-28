@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.service;
+package org.restobar.gaira.modulo_electronico.service.carrito;
 
 import lombok.RequiredArgsConstructor;
 import org.restobar.gaira.modulo_comercial.entity.ProductoSucursal;

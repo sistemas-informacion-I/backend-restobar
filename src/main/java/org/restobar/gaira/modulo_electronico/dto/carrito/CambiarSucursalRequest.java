@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.dto.carrito;
+package org.restobar.gaira.modulo_electronico.dto.carrito;
 
 import jakarta.validation.constraints.NotNull;
 

@@ -1,13 +1,13 @@
-package org.restobar.gaira.modulo_carrito.controller;
+package org.restobar.gaira.modulo_electronico.controller.carrito;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.restobar.gaira.modulo_carrito.dto.carrito.CambiarSucursalRequest;
-import org.restobar.gaira.modulo_carrito.dto.carrito.CarritoResponse;
-import org.restobar.gaira.modulo_carrito.dto.item.ActualizarItemRequest;
-import org.restobar.gaira.modulo_carrito.dto.item.AgregarItemRequest;
-import org.restobar.gaira.modulo_carrito.service.CarritoService;
+import org.restobar.gaira.modulo_electronico.dto.carrito.CambiarSucursalRequest;
+import org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse;
+import org.restobar.gaira.modulo_electronico.dto.item.ActualizarItemRequest;
+import org.restobar.gaira.modulo_electronico.dto.item.AgregarItemRequest;
+import org.restobar.gaira.modulo_electronico.service.carrito.CarritoService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

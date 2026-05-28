@@ -158,14 +158,6 @@ public class LoginService {
         createSession(usuario, accessToken, refreshToken, httpRequest);
         logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "login_exitoso");
 
-        // Identificar sucursal si es empleado
-        Long sucursalId = null;
-        if ("E".equals(usuario.getTipoUsuario())) {
-            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
-                    .map(EmpleadoSucursal::getSucursal)
-                    .map(Sucursal::getIdSucursal)
-                    .orElse(null);
-        }
 
         return new LoginResponse(
                 accessToken,
@@ -213,15 +205,6 @@ public class LoginService {
         sesion.setIpOrigen(extractIp(httpRequest));
         sesion.setUserAgent(httpRequest.getHeader("User-Agent"));
         sesionRepository.save(sesion);
-
-        // Identificar sucursal si es empleado
-        Long sucursalId = null;
-        if ("E".equals(usuario.getTipoUsuario())) {
-            sucursalId = empleadoSucursalRepository.findByEmpleado_Usuario_IdUsuarioAndActivoTrue(usuario.getIdUsuario())
-                    .map(EmpleadoSucursal::getSucursal)
-                    .map(Sucursal::getIdSucursal)
-                    .orElse(null);
-        }
 
         return new LoginResponse(
                 newAccessToken,

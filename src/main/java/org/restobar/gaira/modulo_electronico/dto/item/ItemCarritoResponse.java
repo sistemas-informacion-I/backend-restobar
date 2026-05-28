@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.dto.item;
+package org.restobar.gaira.modulo_electronico.dto.item;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

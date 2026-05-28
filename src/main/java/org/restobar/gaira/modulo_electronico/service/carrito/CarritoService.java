@@ -1,14 +1,14 @@
-package org.restobar.gaira.modulo_carrito.service;
+package org.restobar.gaira.modulo_electronico.service.carrito;
 
 import lombok.RequiredArgsConstructor;
-import org.restobar.gaira.modulo_carrito.dto.carrito.CarritoResponse;
-import org.restobar.gaira.modulo_carrito.dto.item.AgregarItemRequest;
-import org.restobar.gaira.modulo_carrito.dto.item.ActualizarItemRequest;
-import org.restobar.gaira.modulo_carrito.entity.CarritoCompras;
-import org.restobar.gaira.modulo_carrito.entity.ItemCarrito;
-import org.restobar.gaira.modulo_carrito.mapper.CarritoMapper;
-import org.restobar.gaira.modulo_carrito.repository.CarritoComprasRepository;
-import org.restobar.gaira.modulo_carrito.repository.ItemCarritoRepository;
+import org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse;
+import org.restobar.gaira.modulo_electronico.dto.item.AgregarItemRequest;
+import org.restobar.gaira.modulo_electronico.dto.item.ActualizarItemRequest;
+import org.restobar.gaira.modulo_electronico.entity.CarritoCompras;
+import org.restobar.gaira.modulo_electronico.entity.ItemCarrito;
+import org.restobar.gaira.modulo_electronico.mapper.carrito.CarritoMapper;
+import org.restobar.gaira.modulo_electronico.repository.CarritoComprasRepository;
+import org.restobar.gaira.modulo_electronico.repository.ItemCarritoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -434,7 +434,7 @@ public class CarritoService {
         Map<String, Object> items = (Map<String, Object>) cartData.getOrDefault("items", new HashMap<>());
 
         if (items.isEmpty()) {
-            return new org.restobar.gaira.modulo_carrito.dto.carrito.CarritoResponse(
+            return new org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse(
                     null, idSucursal, ESTADO_ACTIVO, List.of(), BigDecimal.ZERO, java.time.LocalDateTime.now());
         }
 
