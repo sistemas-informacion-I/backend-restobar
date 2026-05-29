@@ -158,6 +158,7 @@ public class LoginService {
         createSession(usuario, accessToken, refreshToken, httpRequest);
         logAuditoriaService.logAcceso(usuario, "usuario", "EJECUTAR", httpRequest, "login_exitoso");
 
+
         return new LoginResponse(
                 accessToken,
                 refreshToken,
