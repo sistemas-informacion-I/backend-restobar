@@ -57,10 +57,10 @@ public class SucursalService implements AuditableService<Long, Object> {
 
     @Transactional(readOnly = true)
     public List<SucursalResponseDTO> listarTodas() {
-        Usuario actor = securityUtils.getCurrentUser();
+        String tipoUsuario = securityUtils.getCurrentUserTipoUsuario();
         
-        // Si es SUPERUSER, ve todas
-        if (actor != null && "S".equals(actor.getTipoUsuario())) {
+        // Si no hay usuario autenticado, SUPERUSER o CLIENTE, ve todas las activas
+        if (tipoUsuario == null || "S".equals(tipoUsuario) || "C".equals(tipoUsuario)) {
             return sucursalRepository.findByActivoTrue()
                     .stream()
                     .map(sucursalMapper::toResponseDTO)
@@ -68,7 +68,9 @@ public class SucursalService implements AuditableService<Long, Object> {
         }
 
         // Si es ADMIN (E), solo ve las suyas
-        if (actor != null && "E".equals(actor.getTipoUsuario())) {
+        if ("E".equals(tipoUsuario)) {
+            Usuario actor = securityUtils.getCurrentUser();
+            if (actor == null) return List.of();
             return actor.getEmpleado().getEmpleadoSucursales().stream()
                     .filter(es -> Boolean.TRUE.equals(es.getActivo()))
                     .map(EmpleadoSucursal::getSucursal)

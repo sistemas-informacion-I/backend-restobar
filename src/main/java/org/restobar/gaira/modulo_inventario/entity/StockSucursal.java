@@ -49,9 +49,10 @@ public class StockSucursal {
 
     // No tocar, se utiliza para validar la unicidad del stock por inventario y
     // sucursal
+    @Builder.Default
     @Version
     @Column(name = "version")
-    private Long version;
+    private Long version = 0L;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -105,5 +106,7 @@ public class StockSucursal {
             this.precioPromedio = BigDecimal.ZERO;
         if (this.activo == null)
             this.activo = true;
+        if (this.version == null)
+            this.version = 0L;
     }
 }

@@ -125,21 +125,23 @@ public class CarritoController {
     // ── POST /carrito/checkout ────────────────────────────────────────────────
 
     /**
-     * Convierte el carrito en comanda PENDIENTE_PAGO.
+     * Convierte el carrito en comanda ONLINE + NotaVenta EMITIDA.
      * Requiere autenticación (el cliente anónimo debe haber iniciado sesión).
+     * Retorna idNotaVenta para usar con la pasarela de pago (PayPal).
      */
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Long>> checkout(
             @RequestParam Long idSucursal,
+            @RequestParam(required = false) Long idMetodoPago,
             Authentication authentication) {
 
         Long idCliente = resolveIdClienteRequerido(authentication);
-        Long idComanda = carritoService.checkout(idCliente, idSucursal);
+        Long idNotaVenta = carritoService.checkout(idCliente, idSucursal, idMetodoPago);
 
         return ResponseEntity
-                .created(URI.create("/comandas/" + idComanda))
-                .body(Map.of("idComanda", idComanda));
+                .created(URI.create("/notas-venta/" + idNotaVenta))
+                .body(Map.of("idNotaVenta", idNotaVenta));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -1,6 +1,9 @@
 package org.restobar.gaira.modulo_electronico.service.carrito;
 
 import lombok.RequiredArgsConstructor;
+import org.restobar.gaira.modulo_acceso.entity.Cliente;
+import org.restobar.gaira.modulo_acceso.repository.ClienteRepository;
+import org.restobar.gaira.modulo_comercial.service.NotaVentaService;
 import org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse;
 import org.restobar.gaira.modulo_electronico.dto.item.AgregarItemRequest;
 import org.restobar.gaira.modulo_electronico.dto.item.ActualizarItemRequest;
@@ -9,6 +12,8 @@ import org.restobar.gaira.modulo_electronico.entity.ItemCarrito;
 import org.restobar.gaira.modulo_electronico.mapper.carrito.CarritoMapper;
 import org.restobar.gaira.modulo_electronico.repository.CarritoComprasRepository;
 import org.restobar.gaira.modulo_electronico.repository.ItemCarritoRepository;
+import org.restobar.gaira.modulo_operaciones.service.comanda.ComandaService;
+import org.restobar.gaira.modulo_operaciones.entity.Comanda;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -56,6 +61,9 @@ public class CarritoService {
     private final CarritoComprasRepository carritoRepository;
     private final ItemCarritoRepository itemCarritoRepository;
     private final CarritoMapper carritoMapper;
+    private final ComandaService comandaService;
+    private final NotaVentaService notaVentaService;
+    private final ClienteRepository clienteRepository;
 
     /**
      * Repositorio JPA proyectado sobre {@code producto_sucursal}.
@@ -284,7 +292,7 @@ public class CarritoService {
      * @return ID de la comanda creada (manejado por CU21).
      */
     @Transactional
-    public Long checkout(Long idCliente, Long idSucursal) {
+    public Long checkout(Long idCliente, Long idSucursal, Long idMetodoPago) {
         if (idCliente == null) {
             throw new ResponseStatusException(UNAUTHORIZED,
                     "Debe iniciar sesión para completar el pedido");
@@ -349,7 +357,7 @@ public class CarritoService {
 
         // Delegar creación de comanda al servicio de CU21 (inyección externa)
         // El id del carrito se pasa para que comanda.id_carrito quede referenciado.
-        Long idComanda = crearComandaOnline(carritoDb, idCliente, idSucursal, psMap, items);
+        Long idComanda = crearComandaOnline(carritoDb, idCliente, idSucursal, idMetodoPago, psMap, items);
 
         // Eliminar carrito de Redis
         deleteRedisCart(key);
@@ -460,58 +468,75 @@ public class CarritoService {
         }
 
         // Construir entidad temporal (sin persistir) para pasar al mapper
-        CarritoCompras carritoTransient = buildTransientCarrito(cartData, items, precios);
+        CarritoCompras carritoTransient = carritoMapper.buildTransientCarrito(
+                (Long) cartData.get("idSucursal"), ESTADO_ACTIVO, items, precios);
 
         return carritoMapper.toResponse(carritoTransient, precios, disponibles, nombres);
     }
 
-    private CarritoCompras buildTransientCarrito(
-            Map<String, Object> cartData,
-            Map<String, Object> items,
-            Map<Long, BigDecimal> precios) {
-
-        Long idSucursal = cartData.get("idSucursal") != null
-                ? ((Number) cartData.get("idSucursal")).longValue() : null;
-
-        CarritoCompras carrito = CarritoCompras.builder()
-                .idSucursal(idSucursal)
-                .estado(ESTADO_ACTIVO)
-                .build();
-
-        List<ItemCarrito> itemList = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : items.entrySet()) {
-            Long pid = Long.valueOf(entry.getKey());
-            @SuppressWarnings("unchecked")
-            Map<String, Object> d = (Map<String, Object>) entry.getValue();
-            int cant = ((Number) d.get("cantidad")).intValue();
-            String notas = (String) d.get("notas");
-            BigDecimal precio = precios.getOrDefault(pid, BigDecimal.ZERO);
-
-            itemList.add(ItemCarrito.builder()
-                    .carrito(carrito)
-                    .idProductoFinal(pid)
-                    .cantidad(cant)
-                    .precioUnitario(precio)
-                    .notasEspeciales(notas)
-                    .build());
-        }
-        carrito.setItems(itemList);
-        return carrito;
-    }
-
     /**
      * Punto de extensión para la creación de la comanda (CU21).
-     * En producción se reemplaza por la inyección del servicio de comandas.
+     * Crea Comanda ONLINE + NotaVenta EMITIDA y retorna el idNotaVenta.
      */
     protected Long crearComandaOnline(
             CarritoCompras carrito,
             Long idCliente,
             Long idSucursal,
+            Long idMetodoPago,
             Map<Long, ProductoSucursalProjection> psMap,
             Map<String, Object> items) {
-        // TODO: inyectar ComandaService (CU21) y llamar:
-        // return comandaService.crearDesdeCarrito(carrito, idCliente, idSucursal, psMap, items);
-        throw new UnsupportedOperationException("ComandaService (CU21) aún no integrado");
+
+        Map<Long, BigDecimal> precios = new java.util.HashMap<>();
+        for (Map.Entry<Long, ProductoSucursalProjection> entry : psMap.entrySet()) {
+            precios.put(entry.getKey(), entry.getValue().getPrecio());
+        }
+
+        List<ComandaService.ItemData> itemDataList = new java.util.ArrayList<>();
+        for (Map.Entry<String, Object> entry : items.entrySet()) {
+            Long pid = Long.valueOf(entry.getKey());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> itemData = (Map<String, Object>) entry.getValue();
+            int cantidad = ((Number) itemData.get("cantidad")).intValue();
+            String notas = (String) itemData.get("notas");
+            BigDecimal precio = psMap.get(pid).getPrecio();
+            itemDataList.add(new ComandaService.ItemData(pid, cantidad, precio, notas));
+        }
+
+        Cliente cliente = clienteRepository.findByUsuario_IdUsuario(idCliente).orElse(null);
+
+        Comanda comanda = comandaService.crearOnlineDesdeCarrito(
+                carrito.getIdCarrito(),
+                idCliente,
+                idSucursal,
+                precios,
+                itemDataList,
+                cliente);
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (ComandaService.ItemData item : itemDataList) {
+            subtotal = subtotal.add(item.precioUnitario().multiply(BigDecimal.valueOf(item.cantidad())));
+        }
+        BigDecimal impuesto = subtotal.multiply(BigDecimal.valueOf(0.13)).setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(impuesto);
+
+        Long idMetodoPagoFinal = idMetodoPago != null ? idMetodoPago : 1L;
+
+        NotaVentaService.ItemData[] notaItems = itemDataList.stream()
+                .map(d -> new NotaVentaService.ItemData(d.idProductoFinal(), d.cantidad(), d.precioUnitario(), d.notas()))
+                .toArray(NotaVentaService.ItemData[]::new);
+
+        var notaVenta = notaVentaService.crearDesdeComanda(
+                comanda,
+                idSucursal,
+                idMetodoPagoFinal,
+                subtotal,
+                BigDecimal.ZERO,
+                impuesto,
+                total,
+                java.util.Arrays.asList(notaItems));
+
+        log.info("Checkout completado: Comanda {} -> NotaVenta {}", comanda.getNumeroComanda(), notaVenta.getIdNotaVenta());
+        return notaVenta.getIdNotaVenta();
     }
 
     // ── Proyección interna (interfaz de contrato con módulo de productos) ─────

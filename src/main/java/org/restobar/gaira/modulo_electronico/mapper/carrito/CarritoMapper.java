@@ -7,6 +7,7 @@ import org.restobar.gaira.modulo_electronico.entity.ItemCarrito;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -72,5 +73,41 @@ public class CarritoMapper {
                 item.getNotasEspeciales(),
                 item.getFechaAgregado(),
                 disponible);
+    }
+
+    /**
+     * Construye una entidad CarritoCompras temporal (sin persistir) con ítems
+     * a partir de los datos provenientes de Redis y los precios de BD.
+     */
+    public CarritoCompras buildTransientCarrito(
+            Long idSucursal,
+            String estado,
+            Map<String, Object> items,
+            Map<Long, BigDecimal> precios) {
+
+        CarritoCompras carrito = CarritoCompras.builder()
+                .idSucursal(idSucursal)
+                .estado(estado)
+                .build();
+
+        List<ItemCarrito> itemList = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : items.entrySet()) {
+            Long pid = Long.valueOf(entry.getKey());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> d = (Map<String, Object>) entry.getValue();
+            int cant = ((Number) d.get("cantidad")).intValue();
+            String notas = (String) d.get("notas");
+            BigDecimal precio = precios.getOrDefault(pid, BigDecimal.ZERO);
+
+            itemList.add(ItemCarrito.builder()
+                    .carrito(carrito)
+                    .idProductoFinal(pid)
+                    .cantidad(cant)
+                    .precioUnitario(precio)
+                    .notasEspeciales(notas)
+                    .build());
+        }
+        carrito.setItems(itemList);
+        return carrito;
     }
 }

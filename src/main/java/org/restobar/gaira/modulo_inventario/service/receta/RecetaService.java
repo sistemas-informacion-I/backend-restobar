@@ -19,6 +19,7 @@ import org.restobar.gaira.modulo_inventario.dto.receta.RecetaCreate;
 import org.restobar.gaira.modulo_inventario.dto.receta.RecetaDuplicarRequest;
 import org.restobar.gaira.modulo_inventario.dto.receta.RecetaResponse;
 import org.restobar.gaira.modulo_inventario.dto.receta.RecetaUpdate;
+import org.restobar.gaira.modulo_inventario.dto.stock.StockAjusteRequest;
 import org.restobar.gaira.modulo_inventario.entity.IngredienteReceta;
 import org.restobar.gaira.modulo_inventario.entity.Inventario;
 import org.restobar.gaira.modulo_inventario.entity.Inventario.UnidadMedida;
@@ -28,6 +29,7 @@ import org.restobar.gaira.modulo_inventario.mapper.receta.RecetaMapper;
 import org.restobar.gaira.modulo_inventario.repository.InventarioRepository;
 import org.restobar.gaira.modulo_inventario.repository.RecetaRepository;
 import org.restobar.gaira.modulo_inventario.repository.StockSucursalRepository;
+import org.restobar.gaira.modulo_inventario.service.stock.StockSucursalService;
 import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
@@ -51,6 +53,7 @@ public class RecetaService implements AuditableService<Long, Object> {
     private final InventarioRepository inventarioRepository;
     private final SucursalRepository sucursalRepository;
     private final StockSucursalRepository stockSucursalRepository;
+    private final StockSucursalService stockSucursalService;
 
     @Override
     public Object getEntity(Long id) {
@@ -346,5 +349,47 @@ public class RecetaService implements AuditableService<Long, Object> {
 
     private boolean esVolumen(UnidadMedida unidad) {
         return unidad == UnidadMedida.LITRO || unidad == UnidadMedida.ML;
+    }
+
+    @Transactional
+    public void descontarIngredientesVenta(Long idProductoFinal, Long idSucursal, int cantidadPorUnidad) {
+        List<Receta> recetas = recetaRepository.findByFiltros(null, true, idProductoFinal);
+        if (recetas.isEmpty()) {
+            return;
+        }
+
+        Receta receta = recetas.get(0);
+        if (receta.getIngredientes() == null || receta.getIngredientes().isEmpty()) {
+            return;
+        }
+
+        for (IngredienteReceta ingrediente : receta.getIngredientes()) {
+            Long idInventario = ingrediente.getInventario().getIdInventario();
+
+            StockSucursal stock = stockSucursalRepository
+                    .findByInventarioIdInventarioAndSucursalIdSucursal(idInventario, idSucursal)
+                    .orElse(null);
+
+            if (stock == null || !Boolean.TRUE.equals(stock.getActivo())) {
+                continue;
+            }
+
+            BigDecimal cantidadNormalizada = convertirCantidad(
+                    ingrediente.getCantidad().multiply(BigDecimal.valueOf(cantidadPorUnidad)),
+                    ingrediente.getUnidadMedida(),
+                    ingrediente.getInventario().getUnidadMedida());
+
+            StockAjusteRequest ajuste = new StockAjusteRequest();
+            ajuste.setIdInventario(idInventario);
+            ajuste.setCantidad(cantidadNormalizada.negate());
+            ajuste.setNumeroLote("SALE-" + System.currentTimeMillis());
+
+            try {
+                stockSucursalService.ajustarStock(stock.getIdStock(), ajuste);
+            } catch (Exception e) {
+                throw new ResponseStatusException(CONFLICT,
+                        "No se pudo descontar stock del insumo: " + ingrediente.getInventario().getNombre());
+            }
+        }
     }
 }

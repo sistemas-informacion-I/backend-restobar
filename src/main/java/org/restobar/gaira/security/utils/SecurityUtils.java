@@ -51,6 +51,18 @@ public class SecurityUtils {
     }
 
     /**
+     * Obtiene el tipo de usuario actual ('S', 'E', 'C') desde el contexto de seguridad.
+     * Más eficiente que getCurrentUser() cuando solo se necesita el tipo.
+     */
+    public String getCurrentUserTipoUsuario() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof ApplicationUserPrincipal principal) {
+            return principal.getTipoUsuario();
+        }
+        return null;
+    }
+
+    /**
      * Obtiene el ID de la sucursal actual para el usuario autenticado.
      * Útil para filtrar datos en modo Administrador.
      */

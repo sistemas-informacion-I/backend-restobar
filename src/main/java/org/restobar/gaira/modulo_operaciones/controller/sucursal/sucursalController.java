@@ -34,7 +34,6 @@ public class sucursalController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('sucursales:read')")
     public ResponseEntity<List<SucursalResponseDTO>> obtenerTodos() {
         return ResponseEntity.ok(sucursalService.listarTodas());
     }
