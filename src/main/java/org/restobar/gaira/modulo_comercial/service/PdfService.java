@@ -5,7 +5,7 @@ import com.lowagie.text.pdf.*;
 import lombok.RequiredArgsConstructor;
 import org.restobar.gaira.modulo_comercial.entity.DetalleNotaVenta;
 import org.restobar.gaira.modulo_comercial.entity.NotaVenta;
-import org.restobar.gaira.modulo_comercial.repository.NotaVentaRepository;
+import org.restobar.gaira.modulo_comercial.repository.notaVenta.NotaVentaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -85,11 +85,11 @@ public class PdfService {
                     : "-", fontValue));
 
             infoTable.addCell(createLabelCell("Estado:", fontLabel));
-            PdfPCell estadoCell = new PdfPCell(new Phrase("  " + nv.getEstado() + "  ", fontBadge));
+            PdfPCell estadoCell = new PdfPCell(new Phrase("  " + (nv.getEstado() != null ? nv.getEstado().name() : "") + "  ", fontBadge));
             estadoCell.setBorder(Rectangle.NO_BORDER);
             estadoCell.setPadding(4);
             estadoCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            if ("PAGADA".equals(nv.getEstado())) {
+            if (NotaVenta.Estado.PAGADA == nv.getEstado()) {
                 estadoCell.setBackgroundColor(new Color(16, 185, 129));
             } else {
                 estadoCell.setBackgroundColor(new Color(239, 68, 68));
@@ -119,7 +119,7 @@ public class PdfService {
             String clienteEmail = nv.getCliente() != null && nv.getCliente().getUsuario() != null
                     ? nv.getCliente().getUsuario().getCorreo()
                     : "-";
-            String nit = nv.getNitCliente() != null ? nv.getNitCliente() : "-";
+            String nit = nv.getNit() != null ? nv.getNit() : "-";
 
             clienteTable.addCell(createLabelCell("Cliente:", fontLabel));
             clienteTable.addCell(createValueCell(clienteNombre, fontValue));
@@ -150,9 +150,9 @@ public class PdfService {
             }
 
             // Items
-            if (nv.getDetalleNotaVentas() != null) {
+            if (nv.getDetalles() != null) {
                 boolean even = false;
-                for (DetalleNotaVenta det : nv.getDetalleNotaVentas()) {
+                for (DetalleNotaVenta det : nv.getDetalles()) {
                     Color rowColor = even ? new Color(249, 250, 251) : Color.WHITE;
                     String prodName = det.getProductoFinal() != null ? det.getProductoFinal().getNombre() : "Producto";
 
@@ -169,14 +169,14 @@ public class PdfService {
                     c2.setBorderColor(new Color(229, 231, 235));
                     itemsTable.addCell(c2);
 
-                    PdfPCell c3 = new PdfPCell(new Phrase(formatBs(det.getPrecioUnitario()), fontTableCell));
+                    PdfPCell c3 = new PdfPCell(new Phrase(formatBs(det.getPrecioU()), fontTableCell));
                     c3.setBackgroundColor(rowColor);
                     c3.setPadding(6);
                     c3.setHorizontalAlignment(Element.ALIGN_RIGHT);
                     c3.setBorderColor(new Color(229, 231, 235));
                     itemsTable.addCell(c3);
 
-                    PdfPCell c4 = new PdfPCell(new Phrase(formatBs(det.getSubtotal()), fontTableCell));
+                    PdfPCell c4 = new PdfPCell(new Phrase(formatBs(det.getSubTotal()), fontTableCell));
                     c4.setBackgroundColor(rowColor);
                     c4.setPadding(6);
                     c4.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -196,7 +196,7 @@ public class PdfService {
             totalesTable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
             totalesTable.getDefaultCell().setPadding(4);
 
-            addTotalRow(totalesTable, "Subtotal:", nv.getSubtotal(), fontLabel, fontValue);
+            addTotalRow(totalesTable, "Subtotal:", nv.getSubTotal(), fontLabel, fontValue);
             addTotalRow(totalesTable, "Impuesto:", nv.getImpuesto(), fontLabel, fontValue);
             addTotalRow(totalesTable, "Propina:", nv.getPropina(), fontLabel, fontValue);
             if (nv.getDescuento() != null && nv.getDescuento().compareTo(BigDecimal.ZERO) > 0) {

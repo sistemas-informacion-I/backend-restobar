@@ -17,7 +17,7 @@ import org.restobar.gaira.modulo_electronico.dto.pago.WebhookTransaccionOnlineRe
 import org.restobar.gaira.modulo_electronico.mapper.pago.PasarelaPagoMapper;
 import org.restobar.gaira.modulo_comercial.entity.NotaVenta;
 import org.restobar.gaira.modulo_electronico.repository.MetodoPagoRepository;
-import org.restobar.gaira.modulo_comercial.repository.NotaVentaRepository;
+import org.restobar.gaira.modulo_comercial.repository.notaVenta.NotaVentaRepository;
 import org.restobar.gaira.modulo_electronico.entity.TransaccionOnline;
 import org.restobar.gaira.modulo_electronico.repository.TransaccionOnlineRepository;
 import org.restobar.gaira.modulo_electronico.entity.MetodoPago;
@@ -94,7 +94,7 @@ public class PasarelaPagoService {
         NotaVenta notaVenta = notaVentaRepository.findById(request.idNotaVenta())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota de venta no encontrada"));
 
-        if (!NotaVenta.EstadoNotaVenta.EMITIDA.name().equalsIgnoreCase(notaVenta.getEstado())) {
+        if (notaVenta.getEstado() != NotaVenta.Estado.EMITIDA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Solo se puede iniciar una transacción para una nota de venta emitida y pendiente de pago");
         }
@@ -159,7 +159,7 @@ public class PasarelaPagoService {
             transaccion.setFechaCompletado(momentoCierre);
 
             NotaVenta notaVenta = transaccion.getNotaVenta();
-            notaVenta.setEstado(NotaVenta.EstadoNotaVenta.PAGADA.name());
+            notaVenta.setEstado(NotaVenta.Estado.PAGADA);
             if (notaVenta.getFechaPago() == null) {
                 notaVenta.setFechaPago(momentoCierre);
             }
