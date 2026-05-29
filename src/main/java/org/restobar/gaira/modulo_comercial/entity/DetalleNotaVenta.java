@@ -1,18 +1,33 @@
 package org.restobar.gaira.modulo_comercial.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import lombok.*;
-
 import java.math.BigDecimal;
 
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Getter
-@Setter
-@ToString
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 @Entity
 @Table(name = "detalle_nota_venta", schema = "public")
+@Getter
+@Setter
+@ToString(exclude = { "notaVenta", "productoFinal" })
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -24,51 +39,46 @@ public class DetalleNotaVenta {
     @Column(name = "id_detalle_nota_venta")
     private Long idDetalleNotaVenta;
 
-    @NotNull
+    @NotNull(message = "La nota de venta no puede ser nula")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nota_venta", nullable = false)
-    @ToString.Exclude
     private NotaVenta notaVenta;
 
-    @NotNull
+    @NotNull(message = "El producto final no puede ser nulo")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "producto_final", nullable = false)
-    @ToString.Exclude
+    @JoinColumn(name = "id_producto_final", nullable = false)
     private ProductoFinal productoFinal;
 
-    @NotNull
-    @Positive
-    @Builder.Default
+    @NotNull(message = "La cantidad no puede ser nula")
     @Column(name = "cantidad", nullable = false)
-    private Integer cantidad = 1;
+    private Integer cantidad;
 
-    @NotNull
-    @Builder.Default
-    @Column(name = "precio_u", nullable = false, precision = 10, scale = 2)
-    private BigDecimal precioU = BigDecimal.ZERO;
+    @NotNull(message = "El precio unitario no puede ser nulo")
+    @DecimalMin(value = "0", inclusive = true, message = "El precio unitario no puede ser negativo")
+    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
+    private BigDecimal precioUnitario;
+
+    @NotNull(message = "El costo unitario no puede ser nulo")
+    @DecimalMin(value = "0", inclusive = true, message = "El costo unitario no puede ser negativo")
+    @Column(name = "costo_unitario", nullable = false, precision = 10, scale = 2)
+    private BigDecimal costoUnitario;
 
     @Builder.Default
-    @Column(name = "costo_u", precision = 10, scale = 2)
-    private BigDecimal costoU = BigDecimal.ZERO;
-
-    @Builder.Default
-    @Column(name = "descuento", precision = 10, scale = 2)
+    @DecimalMin(value = "0", inclusive = true, message = "El descuento no puede ser negativo")
+    @Column(name = "descuento", nullable = false, precision = 10, scale = 2)
     private BigDecimal descuento = BigDecimal.ZERO;
 
-    @Builder.Default
-    @Column(name = "sub_total", precision = 10, scale = 2)
-    private BigDecimal subTotal = BigDecimal.ZERO;
+    @NotNull(message = "El subtotal no puede ser nulo")
+    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal;
 
-    @Column(name = "descripcion")
+    @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
     @PrePersist
     protected void onCreate() {
-        calcularSubTotal();
-    }
-
-    public void calcularSubTotal() {
-        this.subTotal = this.precioU.multiply(BigDecimal.valueOf(this.cantidad))
-                .subtract(this.descuento != null ? this.descuento : BigDecimal.ZERO);
+        if (descuento == null) {
+            descuento = BigDecimal.ZERO;
+        }
     }
 }
