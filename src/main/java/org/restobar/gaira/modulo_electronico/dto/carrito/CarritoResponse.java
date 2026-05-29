@@ -1,6 +1,6 @@
-package org.restobar.gaira.modulo_carrito.dto.carrito;
+package org.restobar.gaira.modulo_electronico.dto.carrito;
 
-import org.restobar.gaira.modulo_carrito.dto.item.ItemCarritoResponse;
+import org.restobar.gaira.modulo_electronico.dto.item.ItemCarritoResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

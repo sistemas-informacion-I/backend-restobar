@@ -1,6 +1,6 @@
-package org.restobar.gaira.modulo_carrito.repository;
+package org.restobar.gaira.modulo_electronico.repository;
 
-import org.restobar.gaira.modulo_carrito.entity.CarritoCompras;
+import org.restobar.gaira.modulo_electronico.entity.CarritoCompras;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

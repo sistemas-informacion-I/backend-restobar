@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.service;
+package org.restobar.gaira.modulo_electronico.service.carrito;
 
 import lombok.RequiredArgsConstructor;
 import org.restobar.gaira.modulo_comercial.entity.ProductoSucursal;
@@ -37,8 +37,7 @@ public class ProductoSucursalLookupImpl implements CarritoService.ProductoSucurs
     public Map<Long, CarritoService.ProductoSucursalProjection> findByIdSucursalAndIdProductoFinalIn(
             Long idSucursal, List<Long> ids) {
 
-        return productoSucursalRepository.findByIdSucursal(idSucursal).stream()
-                .filter(ps -> ids.contains(ps.getIdProductoFinal()))
+        return productoSucursalRepository.findByIdSucursalAndIdProductoFinalIn(idSucursal, ids).stream()
                 .collect(Collectors.toMap(
                         ProductoSucursal::getIdProductoFinal,
                         ProductoSucursalLookupImpl::toProjection));

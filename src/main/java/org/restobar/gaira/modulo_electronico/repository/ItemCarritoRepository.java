@@ -1,6 +1,6 @@
-package org.restobar.gaira.modulo_carrito.repository;
+package org.restobar.gaira.modulo_electronico.repository;
 
-import org.restobar.gaira.modulo_carrito.entity.ItemCarrito;
+import org.restobar.gaira.modulo_electronico.entity.ItemCarrito;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

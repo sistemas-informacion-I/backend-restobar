@@ -12,4 +12,5 @@ public interface ProductoSucursalRepository extends JpaRepository<ProductoSucurs
     List<ProductoSucursal> findByIdSucursal(Long idSucursal);
     Optional<ProductoSucursal> findByIdProductoFinalAndIdSucursal(Long idProductoFinal, Long idSucursal);
     List<ProductoSucursal> findByIdProductoFinal(Long idProductoFinal);
+    List<ProductoSucursal> findByIdSucursalAndIdProductoFinalIn(Long idSucursal, List<Long> ids);
 }

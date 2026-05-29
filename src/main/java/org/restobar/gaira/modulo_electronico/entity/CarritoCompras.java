@@ -1,4 +1,4 @@
-package org.restobar.gaira.modulo_carrito.entity;
+package org.restobar.gaira.modulo_electronico.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

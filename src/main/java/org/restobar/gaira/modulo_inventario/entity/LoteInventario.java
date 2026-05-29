@@ -13,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PostLoad;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -55,9 +56,10 @@ public class LoteInventario {
     private StockSucursal stockSucursal;
 
     // No tocar el orden de los campos, ya que se utiliza para ordenar los lotes
+    @Builder.Default
     @Version
     @Column(name = "version")
-    private Long version;
+    private Long version = 0L;
 
     @Column(name = "numero_lote", length = 50)
     private String numeroLote;
@@ -88,5 +90,13 @@ public class LoteInventario {
             this.fechaIngreso = LocalDate.now();
         if (this.estado == null)
             this.estado = EstadoLote.DISPONIBLE;
+        if (this.version == null)
+            this.version = 0L;
+    }
+
+    @PostLoad
+    private void fixVersion() {
+        if (this.version == null)
+            this.version = 0L;
     }
 }
