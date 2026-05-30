@@ -77,4 +77,8 @@ public class SecurityUtils {
                 .findFirst()
                 .orElse(null);
     }
+
+    public boolean isSuperUser() {
+        return "S".equals(getCurrentUserTipoUsuario());
+    }
 }
