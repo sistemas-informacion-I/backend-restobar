@@ -66,6 +66,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("SUCURSALES", "sucursales", List.of("create", "read", "update", "delete"));
         seedModulo("SECTORES", "sectores", List.of("create", "read", "update", "delete"));
         seedModulo("MESAS", "mesas", List.of("create", "read", "update", "delete"));
+        seedModulo("COMANDAS", "comandas", List.of("create", "read", "update", "delete"));
 
         seedModulo("INVENTARIO", "inventario", List.of("create", "read", "update", "delete"));
         seedModulo("CATEGORIAS", "categories", List.of("create", "read", "update"));
@@ -145,7 +146,7 @@ public class InitializerSeeder implements CommandLineRunner {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
-            "SECTORES", "MESAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO"
+            "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO"
         );
         
         permisoRepository.findAll().forEach(p -> {

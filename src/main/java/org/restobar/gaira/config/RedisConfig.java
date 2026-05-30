@@ -1,5 +1,6 @@
 package org.restobar.gaira.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -32,6 +33,7 @@ public class RedisConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
     MessageListenerAdapter messageListener(WebSocketService webSocketService) {
         // Le indicamos que llame al método handleRedisMessage cuando reciba un evento
         MessageListenerAdapter adapter = new MessageListenerAdapter(webSocketService, "handleRedisMessage");
@@ -41,6 +43,7 @@ public class RedisConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
     RedisMessageListenerContainer redisContainer(RedisConnectionFactory connectionFactory, MessageListenerAdapter messageListener) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
