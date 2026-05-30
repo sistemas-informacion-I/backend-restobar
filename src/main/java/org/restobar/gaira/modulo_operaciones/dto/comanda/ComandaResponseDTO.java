@@ -23,6 +23,8 @@ public class ComandaResponseDTO {
     private String empleadoNombre;
     private Long idMesa;
     private String mesaNombre;
+    private Long idSector;
+    private String nombreSector;
     private String tipoServicio;
     private String estado;
     private LocalDateTime fechaApertura;
