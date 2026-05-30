@@ -24,6 +24,8 @@ public class ComandaMapper {
                 .empleadoNombre(buildEmpleadoNombre(comanda.getEmpleado()))
                 .idMesa(comanda.getMesa() != null ? comanda.getMesa().getIdMesa() : null)
                 .mesaNombre(comanda.getMesa() != null ? comanda.getMesa().getNumeroMesa() : null)
+                .idSector(resolveIdSector(comanda))
+                .nombreSector(resolveNombreSector(comanda))
                 .tipoServicio(comanda.getTipoServicio())
                 .estado(comanda.getEstado())
                 .fechaApertura(comanda.getFechaApertura())
@@ -47,6 +49,20 @@ public class ComandaMapper {
                 .fechaAceptacion(detalle.getFechaAceptacion())
                 .empleadoAsignado(detalle.getEmpleadoAsignado())
                 .build();
+    }
+
+    private Long resolveIdSector(Comanda comanda) {
+        if (comanda.getMesa() == null || comanda.getMesa().getSector() == null) {
+            return null;
+        }
+        return comanda.getMesa().getSector().getIdSector();
+    }
+
+    private String resolveNombreSector(Comanda comanda) {
+        if (comanda.getMesa() == null || comanda.getMesa().getSector() == null) {
+            return null;
+        }
+        return comanda.getMesa().getSector().getNombre();
     }
 
     private String buildClienteNombre(Cliente cliente) {
