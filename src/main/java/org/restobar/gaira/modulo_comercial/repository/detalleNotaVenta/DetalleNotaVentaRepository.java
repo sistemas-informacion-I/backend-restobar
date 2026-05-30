@@ -18,3 +18,4 @@ public interface DetalleNotaVentaRepository extends JpaRepository<DetalleNotaVen
     @Query("SELECT SUM(d.subTotal) FROM DetalleNotaVenta d WHERE d.notaVenta.idNotaVenta = :idNotaVenta")
     java.math.BigDecimal sumSubTotalByNotaVentaId(@Param("idNotaVenta") Long idNotaVenta);
 }
+	

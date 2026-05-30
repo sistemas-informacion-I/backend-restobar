@@ -2,15 +2,22 @@ package org.restobar.gaira.modulo_comercial.controller.notaVenta;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.restobar.gaira.modulo_comercial.dto.notaVenta.NotaVentaRequestDTO;
 import org.restobar.gaira.modulo_comercial.dto.notaVenta.NotaVentaResponseDTO;
 import org.restobar.gaira.modulo_comercial.entity.NotaVenta.Estado;
+import org.restobar.gaira.modulo_comercial.service.PdfService;
 import org.restobar.gaira.modulo_comercial.service.notaVenta.NotaVentaService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 public class NotaVentaController {
 
     private final NotaVentaService notaVentaService;
+    private final PdfService pdfService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('ventas:read')")
@@ -90,5 +98,41 @@ public class NotaVentaController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         notaVentaService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Obtiene los pedidos del cliente autenticado para la funcionalidad de pagos en l&iacute;nea.
+     */
+    @GetMapping("/mis-pedidos")
+    public ResponseEntity<List<Map<String, Object>>> obtenerMisPedidos(Authentication authentication) {
+        return ResponseEntity.ok(notaVentaService.obtenerMisPedidos(authentication.getName()));
+    }
+
+    /**
+     * Obtiene una nota de venta por ID validando que pertenezca al cliente autenticado.
+     * Endpoint sin permisos ventas:* — usa el username del principal para validar pertenencia.
+     */
+    @GetMapping("/mis-pedidos/{id}")
+    public ResponseEntity<Map<String, Object>> obtenerMiNota(
+            Authentication authentication,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(notaVentaService.obtenerMiNota(authentication.getName(), id));
+    }
+
+    /**
+     * Descarga factura en PDF para la funcionalidad de pagos en l&iacute;nea.
+     */
+    @GetMapping("/{id}/pdf")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> descargarFacturaPdf(@PathVariable Long id) {
+        byte[] pdfBytes = pdfService.generarFacturaPdf(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("Factura-" + id + ".pdf")
+                .build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 }

@@ -37,8 +37,7 @@ public class ProductoSucursalLookupImpl implements CarritoService.ProductoSucurs
     public Map<Long, CarritoService.ProductoSucursalProjection> findByIdSucursalAndIdProductoFinalIn(
             Long idSucursal, List<Long> ids) {
 
-        return productoSucursalRepository.findByIdSucursal(idSucursal).stream()
-                .filter(ps -> ids.contains(ps.getIdProductoFinal()))
+        return productoSucursalRepository.findByIdSucursalAndIdProductoFinalIn(idSucursal, ids).stream()
                 .collect(Collectors.toMap(
                         ProductoSucursal::getIdProductoFinal,
                         ProductoSucursalLookupImpl::toProjection));

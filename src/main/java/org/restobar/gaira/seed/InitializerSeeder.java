@@ -1,5 +1,6 @@
 package org.restobar.gaira.seed;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.restobar.gaira.modulo_acceso.entity.Permiso;
@@ -12,6 +13,8 @@ import org.restobar.gaira.modulo_acceso.repository.RolPermisoRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolRepository;
 import org.restobar.gaira.modulo_acceso.repository.RolUsuarioRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
+import org.restobar.gaira.modulo_electronico.entity.MetodoPago;
+import org.restobar.gaira.modulo_electronico.repository.MetodoPagoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +37,7 @@ public class InitializerSeeder implements CommandLineRunner {
     private final RolPermisoRepository rolPermisoRepository;
     private final UsuarioRepository usuarioRepository;
     private final RolUsuarioRepository rolUsuarioRepository;
+    private final MetodoPagoRepository metodoPagoRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${seed.admin.username}") private String adminUsername;
@@ -68,6 +72,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("PRODUCTOS", "producto", List.of("create", "read", "update", "delete"));
         seedModulo("RECETAS", "receta", List.of("create", "read", "update", "delete"));
         seedModulo("COMPRAS", "compras", List.of("create", "read", "update", "delete"));
+        seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -82,6 +87,28 @@ public class InitializerSeeder implements CommandLineRunner {
         seedRol("MESERO", "Personal de atención a clientes", 5);
         seedRol("COCINERO", "Personal de producción", 5);
         seedRol("BARTENDER", "Personal de bar", 5);
+
+        // 6. Métodos de Pago
+        seedMetodosPago();
+    }
+
+    private void seedMetodosPago() {
+        seedMetodoPago("Efectivo", "Pago en efectivo en punto de venta", BigDecimal.ZERO, BigDecimal.ZERO, true);
+        seedMetodoPago("QR Pago Móvil", "Pago mediante código QR (BCP, etc.) (Próximamente)", BigDecimal.valueOf(2.0), BigDecimal.ZERO, false);
+        seedMetodoPago("PayPal", "Pago a través de PayPal (online)", BigDecimal.valueOf(5.9), BigDecimal.valueOf(0.30), true);
+        seedMetodoPago("Tarjeta Débito", "Pago con tarjeta de débito Visa/Mastercard (Próximamente)", BigDecimal.valueOf(3.5), BigDecimal.valueOf(2.00), false);
+    }
+
+    private void seedMetodoPago(String nombre, String descripcion, BigDecimal comisionPorcentaje, BigDecimal comisionFija, Boolean activo) {
+        if (metodoPagoRepository.findAll().stream().noneMatch(m -> m.getNombre().equals(nombre))) {
+            metodoPagoRepository.save(MetodoPago.builder()
+                    .nombre(nombre)
+                    .descripcion(descripcion)
+                    .comisionPorcentaje(comisionPorcentaje)
+                    .comisionFija(comisionFija)
+                    .activo(activo)
+                    .build());
+        }
     }
 
     private Rol seedRol(String nombre, String descripcion, int nivelAcceso) {
@@ -118,7 +145,7 @@ public class InitializerSeeder implements CommandLineRunner {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
-            "SECTORES", "MESAS", "COMPRAS", "PRODUCTOS", "RECETAS"
+            "SECTORES", "MESAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO"
         );
         
         permisoRepository.findAll().forEach(p -> {

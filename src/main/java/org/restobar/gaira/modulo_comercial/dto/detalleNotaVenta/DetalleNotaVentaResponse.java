@@ -31,3 +31,4 @@ public class DetalleNotaVentaResponse {
 
     private String descripcion;
 }
+	

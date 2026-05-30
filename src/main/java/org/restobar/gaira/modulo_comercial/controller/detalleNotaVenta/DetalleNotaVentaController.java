@@ -32,3 +32,4 @@ public class DetalleNotaVentaController {
         return ResponseEntity.ok(detalleNotaVentaService.findByNotaVentaId(idNotaVenta));
     }
 }
+	

@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class DetalleNotaVenta {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include

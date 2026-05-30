@@ -2,9 +2,11 @@ package org.restobar.gaira.modulo_comercial.service.notaVenta;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.restobar.gaira.modulo_acceso.entity.Cliente;
 import org.restobar.gaira.modulo_acceso.entity.Empleado;
@@ -19,8 +21,12 @@ import org.restobar.gaira.modulo_comercial.entity.NotaVenta.Estado;
 import org.restobar.gaira.modulo_comercial.entity.ProductoFinal;
 import org.restobar.gaira.modulo_comercial.mapper.detalleNotaVenta.DetalleNotaVentaMapper;
 import org.restobar.gaira.modulo_comercial.mapper.notaVenta.NotaVentaMapper;
+import org.restobar.gaira.modulo_comercial.repository.detalleNotaVenta.DetalleNotaVentaRepository;
 import org.restobar.gaira.modulo_comercial.repository.ProductoFinalRepository;
 import org.restobar.gaira.modulo_comercial.repository.notaVenta.NotaVentaRepository;
+import org.restobar.gaira.modulo_electronico.entity.MetodoPago;
+import org.restobar.gaira.modulo_electronico.repository.MetodoPagoRepository;
+import org.restobar.gaira.modulo_operaciones.entity.Comanda;
 import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
@@ -31,9 +37,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @SuppressWarnings("null")
 public class NotaVentaService implements AuditableService<Long, Object> {
 
@@ -44,6 +52,8 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final ProductoFinalRepository productoFinalRepository;
     private final NotaVentaMapper notaVentaMapper;
     private final DetalleNotaVentaMapper detalleNotaVentaMapper;
+    private final DetalleNotaVentaRepository detalleNotaVentaRepository;
+    private final MetodoPagoRepository metodoPagoRepository;
 
     @Override
     public Object getEntity(Long id) {
@@ -69,8 +79,8 @@ public class NotaVentaService implements AuditableService<Long, Object> {
                 .filter(n -> idCliente == null || n.getCliente().getIdCliente().equals(idCliente))
                 .filter(n -> idSucursal == null || n.getSucursal().getIdSucursal().equals(idSucursal))
                 .filter(n -> estado == null || n.getEstado() == estado)
-                .filter(n -> fechaDesde == null || !n.getFechaEmision().isBefore(fechaDesde))
-                .filter(n -> fechaHasta == null || !n.getFechaEmision().isAfter(fechaHasta))
+                .filter(n -> fechaDesde == null || (n.getFechaEmision() != null && !n.getFechaEmision().toLocalDate().isBefore(fechaDesde)))
+                .filter(n -> fechaHasta == null || (n.getFechaEmision() != null && !n.getFechaEmision().toLocalDate().isAfter(fechaHasta)))
                 .map(notaVentaMapper::toResponse)
                 .toList();
     }
@@ -121,7 +131,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         notaVenta.setSubTotal(subTotalCalc);
         notaVenta.setImpuesto(impuestoCalc);
         notaVenta.setTotal(subTotalCalc.subtract(notaVenta.getDescuento()).add(impuestoCalc).add(notaVenta.getPropina()));
-        notaVenta.setFechaEmision(LocalDate.now());
+        notaVenta.setFechaEmision(LocalDateTime.now());
 
         notaVenta = notaVentaRepository.save(notaVenta);
         return notaVentaMapper.toResponse(notaVenta);
@@ -178,7 +188,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         NotaVenta notaVenta = notaVentaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota de venta no encontrada"));
 
-        if (notaVenta.getEstado() == Estado.PAGADO) {
+        if (notaVenta.getEstado() == Estado.PAGADA) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede eliminar una nota de venta pagada");
         }
 
@@ -196,13 +206,122 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         }
 
         notaVenta.setEstado(nuevoEstado);
-        if (nuevoEstado == Estado.PAGADO) {
-            notaVenta.setFechaPago(LocalDate.now());
+        if (nuevoEstado == Estado.PAGADA) {
+            notaVenta.setFechaPago(LocalDateTime.now());
         }
 
         notaVenta = notaVentaRepository.save(notaVenta);
         return notaVentaMapper.toResponse(notaVenta);
     }
+
+    /**
+     * Obtiene los pedidos del cliente autenticado para la funcionalidad de pagos en l&iacute;nea.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerMisPedidos(String username) {
+        List<NotaVenta> notasVenta = notaVentaRepository.findByClienteUsername(username);
+        return notasVenta.stream()
+                .map(notaVentaMapper::toResponseMap)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene una nota de venta por ID con datos de pago para la funcionalidad de pagos en l&iacute;nea.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> obtenerPorId(Long id) {
+        NotaVenta notaVenta = notaVentaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Nota de venta no encontrada"));
+        return notaVentaMapper.toResponseMap(notaVenta);
+    }
+
+    /**
+     * Obtiene una nota de venta por ID validando que pertenezca al cliente autenticado.
+     * Usa el username del principal para validar pertenencia (sin requerir permisos ventas:*).
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> obtenerMiNota(String username, Long idNotaVenta) {
+        NotaVenta notaVenta = notaVentaRepository.findById(idNotaVenta)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Nota de venta no encontrada"));
+
+        if (notaVenta.getCliente() == null
+                || notaVenta.getCliente().getUsuario() == null
+                || !notaVenta.getCliente().getUsuario().getUsername().equals(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No tienes permiso para ver esta nota");
+        }
+
+        return notaVentaMapper.toResponseMap(notaVenta);
+    }
+
+    /**
+     * Crea una NotaVenta desde una comanda para la funcionalidad de pagos en l&iacute;nea.
+     */
+    @Transactional
+    public NotaVenta crearDesdeComanda(
+            Comanda comanda,
+            Long idSucursal,
+            Long idMetodoPago,
+            BigDecimal subTotal,
+            BigDecimal descuento,
+            BigDecimal impuesto,
+            BigDecimal total,
+            List<ItemData> items) {
+
+        MetodoPago metodoPago = metodoPagoRepository.findById(idMetodoPago)
+                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado: " + idMetodoPago));
+
+        Sucursal sucursal = sucursalRepository.findById(idSucursal)
+                .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + idSucursal));
+
+        NotaVenta notaVenta = NotaVenta.builder()
+                .comanda(comanda)
+                .sucursal(sucursal)
+                .cliente(comanda.getCliente())
+                .metodoPago(metodoPago)
+                .subTotal(subTotal)
+                .descuento(descuento)
+                .impuesto(impuesto)
+                .propina(BigDecimal.ZERO)
+                .total(total)
+                .estado(NotaVenta.Estado.EMITIDA)
+                .build();
+
+        notaVenta = notaVentaRepository.save(notaVenta);
+
+        for (ItemData item : items) {
+            ProductoFinal producto = productoFinalRepository.findById(item.idProductoFinal())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + item.idProductoFinal()));
+
+            BigDecimal costoUnitario = obtenerCostoUnitario(item.idProductoFinal(), idSucursal);
+            BigDecimal itemSubtotal = item.precioUnitario().multiply(BigDecimal.valueOf(item.cantidad()));
+
+            DetalleNotaVenta detalle = DetalleNotaVenta.builder()
+                    .notaVenta(notaVenta)
+                    .productoFinal(producto)
+                    .cantidad(item.cantidad())
+                    .precioU(item.precioUnitario())
+                    .costoU(costoUnitario)
+                    .descuento(BigDecimal.ZERO)
+                    .subTotal(itemSubtotal)
+                    .descripcion(item.notas())
+                    .build();
+
+            detalleNotaVentaRepository.save(detalle);
+        }
+
+        log.info("NotaVenta {} creada desde comanda {} con {} items",
+                notaVenta.getIdNotaVenta(), comanda.getNumeroComanda(), items.size());
+        return notaVenta;
+    }
+
+    private BigDecimal obtenerCostoUnitario(Long idProductoFinal, Long idSucursal) {
+        return BigDecimal.ZERO;
+    }
+
+    public record ItemData(Long idProductoFinal, Integer cantidad, BigDecimal precioUnitario, String notas) {}
 
     private List<DetalleNotaVenta> mapDetalles(List<DetalleNotaVentaRequest> detallesRequest) {
         if (detallesRequest == null || detallesRequest.isEmpty()) {

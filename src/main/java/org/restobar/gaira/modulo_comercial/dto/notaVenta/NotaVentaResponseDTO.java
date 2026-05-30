@@ -8,7 +8,7 @@ import org.restobar.gaira.modulo_comercial.dto.detalleNotaVenta.DetalleNotaVenta
 import org.restobar.gaira.modulo_comercial.entity.NotaVenta.Estado;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -31,7 +31,7 @@ public class NotaVentaResponseDTO {
 
     private String nombreSucursal;
 
-    private LocalDate fechaEmision;
+    private LocalDateTime fechaEmision;
 
     private BigDecimal subTotal;
 
@@ -47,7 +47,7 @@ public class NotaVentaResponseDTO {
 
     private String observaciones;
 
-    private LocalDate fechaPago;
+    private LocalDateTime fechaPago;
 
     private String nit;
 
