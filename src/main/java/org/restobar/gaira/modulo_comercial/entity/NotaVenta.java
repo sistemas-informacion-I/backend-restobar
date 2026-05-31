@@ -96,7 +96,7 @@ public class NotaVenta {
 
     @NotNull
     @DecimalMin(value = "0", inclusive = true, message = "El subtotal no puede ser negativo")
-    @Column(name = "subTotal", nullable = false, precision = 10, scale = 2)
+    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
     private BigDecimal subTotal;
 
     @Builder.Default

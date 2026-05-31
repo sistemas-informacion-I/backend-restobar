@@ -287,6 +287,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
             BigDecimal subTotal,
             BigDecimal descuento,
             BigDecimal impuesto,
+            BigDecimal propina,
             BigDecimal total,
             List<ItemData> items) {
 
@@ -304,7 +305,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
                 .subTotal(subTotal)
                 .descuento(descuento)
                 .impuesto(impuesto)
-                .propina(BigDecimal.ZERO)
+                .propina(propina != null ? propina : BigDecimal.ZERO)
                 .total(total)
                 .estado(NotaVenta.Estado.EMITIDA)
                 .build();
@@ -389,6 +390,19 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         BigDecimal total = subtotal.subtract(descuentoTotal).add(impuesto).add(propinaTotal)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        // Resolver el cliente: el enviado explícitamente por el cajero o el que ya
+        // tiene asignado la comanda. La nota de venta exige un cliente (no anónimo).
+        Cliente cliente = idCliente != null
+                ? clienteRepository.findById(idCliente)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Cliente no encontrado: " + idCliente))
+                : comanda.getCliente();
+        if (cliente == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Se requiere un cliente para facturar la venta. Asigne un cliente a la comanda o seleccione uno al cobrar.");
+        }
+        comanda.setCliente(cliente);
+
         Long idSucursal = comanda.getSucursal().getIdSucursal();
 
         List<ItemData> itemDataList = items.stream()
@@ -401,7 +415,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
 
         NotaVenta notaVenta = crearDesdeComanda(
                 comanda, idSucursal, idMetodoPago,
-                subtotal, descuentoTotal, impuesto, total, itemDataList);
+                subtotal, descuentoTotal, impuesto, propinaTotal, total, itemDataList);
 
         MetodoPago metodoPago = metodoPagoRepository.findById(idMetodoPago)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
