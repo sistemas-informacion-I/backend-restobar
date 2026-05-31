@@ -82,4 +82,10 @@ public class CategoriaController {
     public ResponseEntity<CategoriaResponse> desactivar(@PathVariable Long id) {
         return ResponseEntity.ok(categoriaService.desactivar(id));
     }
+    // PATCH /api/categorias/{id}/activar
+    @PatchMapping("/{id}/activar")
+    @PreAuthorize("hasAuthority('categories:update')")
+    public ResponseEntity<CategoriaResponse> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaService.activar(id));
+    }
 }

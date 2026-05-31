@@ -134,6 +134,16 @@ public class CategoriaService implements AuditableService<Long, Object> {
         return categoriaMapper.toResponse(categoria);
     }
 
+    @Transactional
+    @Auditable(tabla = "categoria", operacion = "UPDATE", idParamName = "id")
+    public CategoriaResponse activar(Long id) {
+        Categoria categoria = categoriaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Categoría no encontrada"));
+
+        categoria.setActivo(true);
+        categoriaRepository.save(categoria);
+        return categoriaMapper.toResponse(categoria);
+    }
     // ─── Helpers privados ────────────────────────────────────────────────────
 
     /**
@@ -149,6 +159,7 @@ public class CategoriaService implements AuditableService<Long, Object> {
             return null;
         }
 
+        
         Categoria padre = categoriaRepository.findById(idCategoriaPadre)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Categoría padre no encontrada"));
 
