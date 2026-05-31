@@ -74,6 +74,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("RECETAS", "receta", List.of("create", "read", "update", "delete"));
         seedModulo("COMPRAS", "compras", List.of("create", "read", "update", "delete"));
         seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
+        seedModulo("VENTAS", "ventas", List.of("create", "read", "update", "delete"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -89,8 +90,11 @@ public class InitializerSeeder implements CommandLineRunner {
         Rol cocinero = seedRol("COCINERO", "Personal de producción", 5);
         Rol bartender = seedRol("BARTENDER", "Personal de bar", 5);
 
-        // Permisos operativos del personal (comandas / preparación)
+        // Permisos operativos del personal (comandas / preparación) - CU14
         syncOperationalStaffPermissions(mesero, cajero, cocinero, bartender);
+
+        // Permisos de ventas presenciales para el cajero - CU15
+        syncCajeroPermissions(cajero);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -149,7 +153,8 @@ public class InitializerSeeder implements CommandLineRunner {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
-            "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO"
+            "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
+            "VENTAS"
         );
         
         permisoRepository.findAll().forEach(p -> {
@@ -196,6 +201,16 @@ public class InitializerSeeder implements CommandLineRunner {
     private void assignPermisos(Rol rol, List<String> permisos) {
         permisos.forEach(nombre ->
             permisoRepository.findByNombre(nombre).ifPresent(p -> seedRolPermiso(rol, p)));
+    }
+
+    private void syncCajeroPermissions(Rol rol) {
+        // Permisos de ventas presenciales (CU15): el cajero gestiona el módulo VENTAS.
+        List<String> modulosCajero = List.of("VENTAS");
+        permisoRepository.findAll().forEach(p -> {
+            if (modulosCajero.contains(p.getModulo())) {
+                seedRolPermiso(rol, p);
+            }
+        });
     }
 
     private void seedRolPermiso(Rol rol, Permiso permiso) {

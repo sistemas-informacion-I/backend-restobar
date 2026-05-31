@@ -1,84 +1,73 @@
 package org.restobar.gaira.modulo_comercial.entity;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.*;
+
 import java.math.BigDecimal;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-
-@Entity
-@Table(name = "detalle_nota_venta", schema = "public")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Getter
 @Setter
-@ToString(exclude = { "notaVenta", "productoFinal" })
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
+@Entity
+@Table(name = "detalle_nota_venta", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class DetalleNotaVenta {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
     @Column(name = "id_detalle_nota_venta")
     private Long idDetalleNotaVenta;
 
-    @NotNull(message = "La nota de venta no puede ser nula")
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nota_venta", nullable = false)
+    @ToString.Exclude
     private NotaVenta notaVenta;
 
-    @NotNull(message = "El producto final no puede ser nulo")
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_producto_final", nullable = false)
+    @JoinColumn(name = "producto_final", nullable = false)
+    @ToString.Exclude
     private ProductoFinal productoFinal;
 
-    @NotNull(message = "La cantidad no puede ser nula")
+    @NotNull
+    @Positive
+    @Builder.Default
     @Column(name = "cantidad", nullable = false)
-    private Integer cantidad;
+    private Integer cantidad = 1;
 
-    @NotNull(message = "El precio unitario no puede ser nulo")
-    @DecimalMin(value = "0", inclusive = true, message = "El precio unitario no puede ser negativo")
-    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
-    private BigDecimal precioUnitario;
-
-    @NotNull(message = "El costo unitario no puede ser nulo")
-    @DecimalMin(value = "0", inclusive = true, message = "El costo unitario no puede ser negativo")
-    @Column(name = "costo_unitario", nullable = false, precision = 10, scale = 2)
-    private BigDecimal costoUnitario;
+    @NotNull
+    @Builder.Default
+    @Column(name = "precio_u", nullable = false, precision = 10, scale = 2)
+    private BigDecimal precioU = BigDecimal.ZERO;
 
     @Builder.Default
-    @DecimalMin(value = "0", inclusive = true, message = "El descuento no puede ser negativo")
-    @Column(name = "descuento", nullable = false, precision = 10, scale = 2)
+    @Column(name = "costo_u", precision = 10, scale = 2)
+    private BigDecimal costoU = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "descuento", precision = 10, scale = 2)
     private BigDecimal descuento = BigDecimal.ZERO;
 
-    @NotNull(message = "El subtotal no puede ser nulo")
-    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
-    private BigDecimal subtotal;
+    @Builder.Default
+    @Column(name = "sub_total", precision = 10, scale = 2)
+    private BigDecimal subTotal = BigDecimal.ZERO;
 
-    @Column(name = "descripcion", columnDefinition = "TEXT")
+    @Column(name = "descripcion")
     private String descripcion;
 
     @PrePersist
     protected void onCreate() {
-        if (descuento == null) {
-            descuento = BigDecimal.ZERO;
-        }
+        calcularSubTotal();
+    }
+
+    public void calcularSubTotal() {
+        this.subTotal = this.precioU.multiply(BigDecimal.valueOf(this.cantidad))
+                .subtract(this.descuento != null ? this.descuento : BigDecimal.ZERO);
     }
 }

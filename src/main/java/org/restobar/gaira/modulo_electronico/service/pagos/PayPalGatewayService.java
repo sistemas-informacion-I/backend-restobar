@@ -17,7 +17,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.restobar.gaira.modulo_comercial.entity.DetalleNotaVenta;
 import org.restobar.gaira.modulo_comercial.entity.NotaVenta;
-import org.restobar.gaira.modulo_comercial.repository.NotaVentaRepository;
+import org.restobar.gaira.modulo_comercial.repository.notaVenta.NotaVentaRepository;
 import org.restobar.gaira.modulo_electronico.dto.pago.TransaccionOnlineResponse;
 import org.restobar.gaira.modulo_electronico.dto.paypal.PayPalCaptureResponse;
 import org.restobar.gaira.modulo_electronico.dto.paypal.PayPalCreateOrderRequest;
@@ -174,12 +174,8 @@ public class PayPalGatewayService {
         }
 
         if (
-            !NotaVenta.EstadoNotaVenta.EMITIDA.name().equalsIgnoreCase(
-                notaVenta.getEstado()
-            ) &&
-            !NotaVenta.EstadoNotaVenta.PAGADA.name().equalsIgnoreCase(
-                notaVenta.getEstado()
-            )
+            notaVenta.getEstado() != NotaVenta.Estado.EMITIDA &&
+            notaVenta.getEstado() != NotaVenta.Estado.PAGADA
         ) {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
@@ -275,7 +271,7 @@ public class PayPalGatewayService {
                 );
                 transaccionOnlineRepository.save(existenteTrans);
 
-                notaVenta.setEstado(NotaVenta.EstadoNotaVenta.EMITIDA.name());
+                notaVenta.setEstado(NotaVenta.Estado.EMITIDA);
                 notaVentaRepository.save(notaVenta);
 
                 Comanda comanda = notaVenta.getComanda();
@@ -315,7 +311,7 @@ public class PayPalGatewayService {
         transaccion.getDatosAdicionales().put("invoice_number", invoiceNumber);
         transaccion = transaccionOnlineRepository.save(transaccion);
 
-        notaVenta.setEstado(NotaVenta.EstadoNotaVenta.EMITIDA.name());
+        notaVenta.setEstado(NotaVenta.Estado.EMITIDA);
         notaVentaRepository.save(notaVenta);
 
         Comanda comanda = notaVenta.getComanda();
@@ -430,7 +426,7 @@ public class PayPalGatewayService {
         transaccion = transaccionOnlineRepository.save(transaccion);
 
         NotaVenta notaVenta = transaccion.getNotaVenta();
-        notaVenta.setEstado(NotaVenta.EstadoNotaVenta.PAGADA.name());
+        notaVenta.setEstado(NotaVenta.Estado.PAGADA);
         if (notaVenta.getFechaPago() == null) {
             notaVenta.setFechaPago(transaccion.getFechaCompletado());
         }
@@ -438,7 +434,8 @@ public class PayPalGatewayService {
 
         Comanda comanda = notaVenta.getComanda();
         if (comanda != null) {
-            comanda.setEstado(Comanda.EstadoComanda.ABIERTA.name());
+            //comanda.setEstado(Comanda.EstadoComanda.ABIERTA.name())
+            comanda.setEstado(Comanda.EstadoComanda.CERRADA.name());
             comandaRepository.save(comanda);
         }
 
@@ -486,7 +483,7 @@ public class PayPalGatewayService {
     }
 
     private void actualizarStock(NotaVenta notaVenta) {
-        List<DetalleNotaVenta> detalles = notaVenta.getDetalleNotaVentas();
+        List<DetalleNotaVenta> detalles = notaVenta.getDetalles();
         if (detalles == null || detalles.isEmpty()) {
             return;
         }

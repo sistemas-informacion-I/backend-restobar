@@ -3,7 +3,7 @@ package org.restobar.gaira.modulo_electronico.service.carrito;
 import lombok.RequiredArgsConstructor;
 import org.restobar.gaira.modulo_acceso.entity.Cliente;
 import org.restobar.gaira.modulo_acceso.repository.ClienteRepository;
-import org.restobar.gaira.modulo_comercial.service.NotaVentaService;
+import org.restobar.gaira.modulo_comercial.service.notaVenta.NotaVentaService;
 import org.restobar.gaira.modulo_electronico.dto.carrito.CarritoResponse;
 import org.restobar.gaira.modulo_electronico.dto.item.AgregarItemRequest;
 import org.restobar.gaira.modulo_electronico.dto.item.ActualizarItemRequest;

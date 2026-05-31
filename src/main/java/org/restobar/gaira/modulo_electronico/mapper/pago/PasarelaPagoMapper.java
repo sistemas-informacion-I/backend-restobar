@@ -44,7 +44,7 @@ public class PasarelaPagoMapper {
                 transaccion.getCodigoAutorizacion(),
                 transaccion.getCodigoError(),
                 transaccion.getDatosAdicionales(),
-                notaVenta != null ? notaVenta.getEstado() : null,
+                notaVenta != null && notaVenta.getEstado() != null ? notaVenta.getEstado().name() : null,
                 comanda != null ? comanda.getEstado() : null,
                 metodoPago != null ? metodoPago.getNombre() : null);
     }
