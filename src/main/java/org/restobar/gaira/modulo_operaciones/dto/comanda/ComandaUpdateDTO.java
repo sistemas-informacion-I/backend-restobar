@@ -17,6 +17,8 @@ public class ComandaUpdateDTO {
 
     private String observaciones;
 
+    private Long idCliente;
+
     @PositiveOrZero(message = "Número de personas debe ser cero o mayor")
     private Integer numeroPersonas;
 

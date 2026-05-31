@@ -184,14 +184,15 @@ public class InitializerSeeder implements CommandLineRunner {
         List.of(mesero, cajero, cocinero, bartender)
             .forEach(rol -> assignPermisos(rol, List.of("sectores:read", "mesas:read")));
 
-        // El MESERO crea y gestiona comandas en su sucursal (CU14).
+        // El MESERO crea y gestiona comandas en su sucursal (CU14). Puede asignar el
+        // cliente a la comanda (necesario para luego facturarla en CU15).
         assignPermisos(mesero, List.of(
-            "comandas:create", "comandas:read", "comandas:update", "producto:read"
+            "comandas:create", "comandas:read", "comandas:update", "producto:read", "clients:read"
         ));
 
         // El CAJERO consulta y cierra comandas para facturar las ventas presenciales (CU15).
         assignPermisos(cajero, List.of(
-            "comandas:read", "comandas:update", "producto:read"
+            "comandas:read", "comandas:update", "producto:read", "clients:read"
         ));
 
         // COCINERO y BARTENDER trabajan la preparación vía su rol (controlador por hasAnyRole),

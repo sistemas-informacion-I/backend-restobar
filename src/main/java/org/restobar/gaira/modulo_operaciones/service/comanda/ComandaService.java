@@ -176,6 +176,10 @@ public class ComandaService {
         if (request.getNumeroPersonas() != null) {
             comanda.setNumeroPersonas(request.getNumeroPersonas());
         }
+        if (request.getIdCliente() != null) {
+            // Permite asignar (o cambiar) el cliente de la comanda; 0 = anónimo (sin cliente)
+            comanda.setCliente(request.getIdCliente() == 0 ? null : fetchCliente(request.getIdCliente()));
+        }
 
         comanda = comandaRepository.save(comanda);
 
