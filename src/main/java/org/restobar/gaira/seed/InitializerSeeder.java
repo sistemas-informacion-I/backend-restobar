@@ -83,11 +83,14 @@ public class InitializerSeeder implements CommandLineRunner {
         // 4. Asegurar Existencia de Usuario Maestro
         ensureAdminUser(superuser);
         
-        // 5. Roles Operativos Adicionales (Sin permisos base por ahora)
-        seedRol("CAJERO", "Personal encargado de cobros", 10);
-        seedRol("MESERO", "Personal de atención a clientes", 5);
-        seedRol("COCINERO", "Personal de producción", 5);
-        seedRol("BARTENDER", "Personal de bar", 5);
+        // 5. Roles Operativos Adicionales
+        Rol cajero = seedRol("CAJERO", "Personal encargado de cobros", 10);
+        Rol mesero = seedRol("MESERO", "Personal de atención a clientes", 5);
+        Rol cocinero = seedRol("COCINERO", "Personal de producción", 5);
+        Rol bartender = seedRol("BARTENDER", "Personal de bar", 5);
+
+        // Permisos operativos del personal (comandas / preparación)
+        syncOperationalStaffPermissions(mesero, cajero, cocinero, bartender);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -165,9 +168,34 @@ public class InitializerSeeder implements CommandLineRunner {
     }
 
     private void syncClientePermissions(Rol rol) {
-        // El CLIENTE no tiene permisos administrativos. 
+        // El CLIENTE no tiene permisos administrativos.
         // Su acceso se limita a lo que el controlador permita por @AuthenticationPrincipal (su propio perfil)
         // sin necesidad de autoridades globales.
+    }
+
+    private void syncOperationalStaffPermissions(Rol mesero, Rol cajero, Rol cocinero, Rol bartender) {
+        // Todo el personal operativo puede VISUALIZAR sectores y mesas (solo lectura).
+        // La gestión (crear/editar/eliminar) queda reservada a ADMIN/SUPERUSER.
+        List.of(mesero, cajero, cocinero, bartender)
+            .forEach(rol -> assignPermisos(rol, List.of("sectores:read", "mesas:read")));
+
+        // El MESERO crea y gestiona comandas en su sucursal (CU14).
+        assignPermisos(mesero, List.of(
+            "comandas:create", "comandas:read", "comandas:update", "producto:read"
+        ));
+
+        // El CAJERO consulta y cierra comandas para facturar las ventas presenciales (CU15).
+        assignPermisos(cajero, List.of(
+            "comandas:read", "comandas:update", "producto:read"
+        ));
+
+        // COCINERO y BARTENDER trabajan la preparación vía su rol (controlador por hasAnyRole),
+        // por lo que no requieren permisos adicionales de comandas aquí.
+    }
+
+    private void assignPermisos(Rol rol, List<String> permisos) {
+        permisos.forEach(nombre ->
+            permisoRepository.findByNombre(nombre).ifPresent(p -> seedRolPermiso(rol, p)));
     }
 
     private void seedRolPermiso(Rol rol, Permiso permiso) {
