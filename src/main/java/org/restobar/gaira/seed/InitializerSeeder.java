@@ -195,8 +195,14 @@ public class InitializerSeeder implements CommandLineRunner {
             "comandas:read", "comandas:update", "producto:read", "clients:read"
         ));
 
-        // COCINERO y BARTENDER trabajan la preparación vía su rol (controlador por hasAnyRole),
-        // por lo que no requieren permisos adicionales de comandas aquí.
+        // COCINERO y BARTENDER trabajan la preparación vía su rol (controlador por hasAnyRole).
+        // Además pueden gestionar recetas (crear/editar), para lo cual necesitan leer
+        // productos e insumos de inventario.
+        List.of(cocinero, bartender)
+            .forEach(rol -> assignPermisos(rol, List.of(
+                "receta:read", "receta:create", "receta:update",
+                "producto:read", "inventario:read"
+            )));
     }
 
     private void assignPermisos(Rol rol, List<String> permisos) {
