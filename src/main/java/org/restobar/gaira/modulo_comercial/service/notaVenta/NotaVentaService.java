@@ -66,6 +66,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final MetodoPagoRepository metodoPagoRepository;
     private final ComandaRepository comandaRepository;
     private final DetalleComandaRepository detalleComandaRepository;
+    private final org.restobar.gaira.modulo_operaciones.repository.MesaRepository mesaRepository;
     private final PayPalGatewayService payPalGatewayService;
     private final PayPalMapper payPalMapper;
 
@@ -464,6 +465,13 @@ public class NotaVentaService implements AuditableService<Long, Object> {
 
             comanda.setEstado(Comanda.EstadoComanda.CERRADA.name());
             comandaRepository.save(comanda);
+
+            // Liberar la mesa al cerrar la venta (CU15): vuelve a estar DISPONIBLE.
+            if (comanda.getMesa() != null) {
+                var mesa = comanda.getMesa();
+                mesa.setDisponibilidad("DISPONIBLE");
+                mesaRepository.save(mesa);
+            }
 
             response.put("estado", "PAGADA");
         }
