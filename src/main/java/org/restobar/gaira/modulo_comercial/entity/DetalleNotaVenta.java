@@ -31,7 +31,7 @@ public class DetalleNotaVenta {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_producto_final", nullable = false)
+    @JoinColumn(name = "producto_final", nullable = false)
     @ToString.Exclude
     private ProductoFinal productoFinal;
 
@@ -43,11 +43,11 @@ public class DetalleNotaVenta {
 
     @NotNull
     @Builder.Default
-    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_u", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioU = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "costo_unitario", precision = 10, scale = 2)
+    @Column(name = "costo_u", precision = 10, scale = 2)
     private BigDecimal costoU = BigDecimal.ZERO;
 
     @Builder.Default

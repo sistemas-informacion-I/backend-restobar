@@ -26,11 +26,11 @@ public class Sesion {
     private Usuario usuario;
 
     @NotBlank(message = "Token de sesión no puede estar vacío")
-    @Column(name = "token_sesion", nullable = false, unique = true, length = 2000)
+    @Column(name = "token_sesion", nullable = false, unique = true, columnDefinition = "TEXT")
     private String tokenSesion;
 
     @NotBlank(message = "Refresh token no puede estar vacío")
-    @Column(name = "refresh_token", nullable = false, unique = true, length = 2000)
+    @Column(name = "refresh_token", nullable = false, unique = true, columnDefinition = "TEXT")
     private String refreshToken;
 
     @Column(name = "refresh_expiracion")
