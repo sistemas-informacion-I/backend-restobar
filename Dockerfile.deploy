@@ -1,7 +1,7 @@
 # Stage 1: Build the application with Gradle
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
-
+# tatat
 # Copy gradle executable and configuration to cache dependencies first
 COPY gradle/ gradle/
 COPY gradlew settings.gradle build.gradle ./
