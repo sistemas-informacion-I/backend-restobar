@@ -609,4 +609,26 @@ CREATE TABLE detalle_comanda (
     FOREIGN KEY (id_producto_final) REFERENCES producto_final(id_producto_final)
 );
 
+-- Tabla: ALERTA_INV (_INVENTARIO_)
+CREATE TABLE alerta_inv (
+    id_alerta SERIAL PRIMARY KEY,
+    id_sucursal INTEGER NOT NULL,
+    id_stock INTEGER,
+    id_lote INTEGER,
+    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('STOCK_MINIMO', 'STOCK_MAXIMO', 'VENCIMIENTO_PROXIMO')),
+    mensaje TEXT NOT NULL,
+    estado VARCHAR(20) DEFAULT 'NO_LEIDA' NOT NULL CHECK (estado IN ('NO_LEIDA', 'LEIDA', 'RESUELTA')),
+    fecha_generacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    fecha_resolucion TIMESTAMP,
+    FOREIGN KEY (id_sucursal) REFERENCES sucursal(id_sucursal) ON DELETE CASCADE,
+    FOREIGN KEY (id_stock) REFERENCES stock_sucursal(id_stock) ON DELETE CASCADE,
+    FOREIGN KEY (id_lote) REFERENCES lote_inventario(id_lote) ON DELETE CASCADE,
+    CONSTRAINT chk_alerta_origen CHECK (
+        (tipo IN ('STOCK_MINIMO', 'STOCK_MAXIMO') AND id_stock IS NOT NULL) OR
+        (tipo = 'VENCIMIENTO_PROXIMO' AND id_lote IS NOT NULL)
+    ),
+    CONSTRAINT chk_alerta_resolucion CHECK (
+        fecha_resolucion IS NULL OR fecha_resolucion >= fecha_generacion
+    )
+);
 
