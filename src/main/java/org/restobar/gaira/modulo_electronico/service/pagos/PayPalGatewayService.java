@@ -434,7 +434,8 @@ public class PayPalGatewayService {
 
         Comanda comanda = notaVenta.getComanda();
         if (comanda != null) {
-            comanda.setEstado(Comanda.EstadoComanda.ABIERTA.name());
+            //comanda.setEstado(Comanda.EstadoComanda.ABIERTA.name())
+            comanda.setEstado(Comanda.EstadoComanda.CERRADA.name());
             comandaRepository.save(comanda);
         }
 

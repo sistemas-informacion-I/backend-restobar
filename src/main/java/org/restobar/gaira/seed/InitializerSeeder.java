@@ -66,6 +66,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("SUCURSALES", "sucursales", List.of("create", "read", "update", "delete"));
         seedModulo("SECTORES", "sectores", List.of("create", "read", "update", "delete"));
         seedModulo("MESAS", "mesas", List.of("create", "read", "update", "delete"));
+        seedModulo("COMANDAS", "comandas", List.of("create", "read", "update", "delete"));
 
         seedModulo("INVENTARIO", "inventario", List.of("create", "read", "update", "delete"));
         seedModulo("CATEGORIAS", "categories", List.of("create", "read", "update"));
@@ -73,6 +74,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("RECETAS", "receta", List.of("create", "read", "update", "delete"));
         seedModulo("COMPRAS", "compras", List.of("create", "read", "update", "delete"));
         seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
+        seedModulo("VENTAS", "ventas", List.of("create", "read", "update", "delete"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -82,11 +84,17 @@ public class InitializerSeeder implements CommandLineRunner {
         // 4. Asegurar Existencia de Usuario Maestro
         ensureAdminUser(superuser);
         
-        // 5. Roles Operativos Adicionales (Sin permisos base por ahora)
-        seedRol("CAJERO", "Personal encargado de cobros", 10);
-        seedRol("MESERO", "Personal de atención a clientes", 5);
-        seedRol("COCINERO", "Personal de producción", 5);
-        seedRol("BARTENDER", "Personal de bar", 5);
+        // 5. Roles Operativos Adicionales
+        Rol cajero = seedRol("CAJERO", "Personal encargado de cobros", 10);
+        Rol mesero = seedRol("MESERO", "Personal de atención a clientes", 5);
+        Rol cocinero = seedRol("COCINERO", "Personal de producción", 5);
+        Rol bartender = seedRol("BARTENDER", "Personal de bar", 5);
+
+        // Permisos operativos del personal (comandas / preparación) - CU14
+        syncOperationalStaffPermissions(mesero, cajero, cocinero, bartender);
+
+        // Permisos de ventas presenciales para el cajero - CU15
+        syncCajeroPermissions(cajero);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -145,7 +153,8 @@ public class InitializerSeeder implements CommandLineRunner {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
-            "SECTORES", "MESAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO"
+            "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
+            "VENTAS"
         );
         
         permisoRepository.findAll().forEach(p -> {
@@ -164,9 +173,51 @@ public class InitializerSeeder implements CommandLineRunner {
     }
 
     private void syncClientePermissions(Rol rol) {
-        // El CLIENTE no tiene permisos administrativos. 
+        // El CLIENTE no tiene permisos administrativos.
         // Su acceso se limita a lo que el controlador permita por @AuthenticationPrincipal (su propio perfil)
         // sin necesidad de autoridades globales.
+    }
+
+    private void syncOperationalStaffPermissions(Rol mesero, Rol cajero, Rol cocinero, Rol bartender) {
+        // Todo el personal operativo puede VISUALIZAR sectores y mesas (solo lectura).
+        // La gestión (crear/editar/eliminar) queda reservada a ADMIN/SUPERUSER.
+        List.of(mesero, cajero, cocinero, bartender)
+            .forEach(rol -> assignPermisos(rol, List.of("sectores:read", "mesas:read")));
+
+        // El MESERO crea y gestiona comandas en su sucursal (CU14). Puede asignar el
+        // cliente a la comanda (necesario para luego facturarla en CU15).
+        assignPermisos(mesero, List.of(
+            "comandas:create", "comandas:read", "comandas:update", "producto:read", "clients:read"
+        ));
+
+        // El CAJERO consulta y cierra comandas para facturar las ventas presenciales (CU15).
+        assignPermisos(cajero, List.of(
+            "comandas:read", "comandas:update", "producto:read", "clients:read"
+        ));
+
+        // COCINERO y BARTENDER trabajan la preparación vía su rol (controlador por hasAnyRole).
+        // Además pueden gestionar recetas (crear/editar), para lo cual necesitan leer
+        // productos e insumos de inventario.
+        List.of(cocinero, bartender)
+            .forEach(rol -> assignPermisos(rol, List.of(
+                "receta:read", "receta:create", "receta:update",
+                "producto:read", "inventario:read"
+            )));
+    }
+
+    private void assignPermisos(Rol rol, List<String> permisos) {
+        permisos.forEach(nombre ->
+            permisoRepository.findByNombre(nombre).ifPresent(p -> seedRolPermiso(rol, p)));
+    }
+
+    private void syncCajeroPermissions(Rol rol) {
+        // Permisos de ventas presenciales (CU15): el cajero gestiona el módulo VENTAS.
+        List<String> modulosCajero = List.of("VENTAS");
+        permisoRepository.findAll().forEach(p -> {
+            if (modulosCajero.contains(p.getModulo())) {
+                seedRolPermiso(rol, p);
+            }
+        });
     }
 
     private void seedRolPermiso(Rol rol, Permiso permiso) {

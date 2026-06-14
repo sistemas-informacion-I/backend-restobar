@@ -69,12 +69,23 @@ public class LoginController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        java.util.List<String> authorities = principal.getAuthorities().stream()
+                .map(a -> a.getAuthority()).toList();
+
+        // Exponer los roles (derivados de las authorities ROLE_*) para que el
+        // frontend pueda validar accesos por rol (p. ej. COCINERO/BARTENDER).
+        java.util.List<Map<String, Object>> roles = authorities.stream()
+                .filter(a -> a.startsWith("ROLE_"))
+                .map(a -> Map.<String, Object>of("nombre", a.substring("ROLE_".length())))
+                .toList();
+
         return ResponseEntity.ok(Map.of(
                 "idUsuario", principal.getIdUsuario(),
                 "username", principal.getUsername(),
                 "email", principal.getEmail(),
                 "tipoUsuario", principal.getTipoUsuario(),
                 "sucursalId", principal.getSucursalId() != null ? principal.getSucursalId() : "",
-                "authorities", principal.getAuthorities().stream().map(a -> a.getAuthority()).toList()));
+                "authorities", authorities,
+                "roles", roles));
     }
 }

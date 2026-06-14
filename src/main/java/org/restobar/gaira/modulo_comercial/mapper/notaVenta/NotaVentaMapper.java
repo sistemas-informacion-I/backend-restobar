@@ -74,9 +74,9 @@ public class NotaVentaMapper {
 
         return NotaVentaResponseDTO.builder()
                 .idNotaVenta(notaVenta.getIdNotaVenta())
-                .idCliente(notaVenta.getCliente().getIdCliente())
+                .idCliente(notaVenta.getCliente() != null ? notaVenta.getCliente().getIdCliente() : null)
                 .nombreCliente(nombreCliente)
-                .idEmpleado(notaVenta.getEmpleado().getIdEmpleado())
+                .idEmpleado(notaVenta.getEmpleado() != null ? notaVenta.getEmpleado().getIdEmpleado() : null)
                 .nombreEmpleado(nombreEmpleado)
                 .idSucursal(notaVenta.getSucursal().getIdSucursal())
                 .nombreSucursal(notaVenta.getSucursal().getNombre())

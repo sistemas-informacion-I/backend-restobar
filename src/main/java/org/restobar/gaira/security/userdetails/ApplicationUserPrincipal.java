@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.restobar.gaira.modulo_acceso.entity.Permiso;
+import org.restobar.gaira.modulo_acceso.entity.Rol;
 import org.restobar.gaira.modulo_acceso.entity.RolPermiso;
 import org.restobar.gaira.modulo_acceso.entity.RolUsuario;
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
@@ -82,6 +83,21 @@ public class ApplicationUserPrincipal implements UserDetails {
                 .filter(StringUtils::hasText)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Optional.ofNullable(usuario.getRolesUsuario())
+                .orElseGet(Collections::emptySet)
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(ru -> Boolean.TRUE.equals(ru.getActivo()))
+                .filter(ru -> ru.getFechaExpiracion() == null || !ru.getFechaExpiracion().isBefore(now))
+                .map(RolUsuario::getRol)
+                .filter(Objects::nonNull)
+                .filter(rol -> Boolean.TRUE.equals(rol.getActivo()))
+                .map(Rol::getNombre)
+                .filter(StringUtils::hasText)
+                .map(String::toUpperCase)
+                .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName))
+                .forEach(grantedAuthorities::add);
 
         boolean enabled = Boolean.TRUE.equals(usuario.getActivo());
         boolean nonLocked = !"BLOQUEADO".equals(usuario.getEstadoAcceso());
