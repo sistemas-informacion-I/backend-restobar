@@ -79,6 +79,10 @@ public class Comanda {
     @Column(name = "id_reserva")
     private Long idReserva;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_mesa")
+    private Mesa mesa;
+
     @Column(name = "id_carrito")
     private Long idCarrito;
 

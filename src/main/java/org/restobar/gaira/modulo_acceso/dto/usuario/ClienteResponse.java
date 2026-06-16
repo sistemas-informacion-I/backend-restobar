@@ -10,5 +10,8 @@ public record ClienteResponse(
                 LocalDate fechaNacimiento,
                 Integer puntosFidelidad,
                 String nivelCliente,
-                String observaciones) {
+                String observaciones,
+                String nombreCompleto,
+                String correo,
+                String telefono) {
 }

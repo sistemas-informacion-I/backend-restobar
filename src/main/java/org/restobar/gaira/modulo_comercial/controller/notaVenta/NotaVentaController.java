@@ -1,5 +1,6 @@
 package org.restobar.gaira.modulo_comercial.controller.notaVenta;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,36 @@ public class NotaVentaController {
             @Valid @RequestBody NotaVentaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(notaVentaService.create(request));
+    }
+
+    @PostMapping("/presencial")
+    @PreAuthorize("hasAuthority('ventas:create')")
+    public ResponseEntity<Map<String, Object>> crearPresencial(
+            @RequestBody Map<String, Object> body) {
+
+        Long idComanda = Long.valueOf(body.get("idComanda").toString());
+        Long idMetodoPago = Long.valueOf(body.get("idMetodoPago").toString());
+        Long idCliente = body.containsKey("idCliente") && body.get("idCliente") != null
+                ? Long.valueOf(body.get("idCliente").toString())
+                : null;
+        String nit = (String) body.getOrDefault("nit", null);
+        BigDecimal descuentoPorcentual = new BigDecimal(
+                body.getOrDefault("descuentoPorcentual", "0").toString());
+        BigDecimal descuentoFijo = new BigDecimal(
+                body.getOrDefault("descuentoFijo", "0").toString());
+        BigDecimal propinaPorcentual = new BigDecimal(
+                body.getOrDefault("propinaPorcentual", "0").toString());
+        BigDecimal propinaFija = new BigDecimal(
+                body.getOrDefault("propinaFija", "0").toString());
+        String observaciones = (String) body.getOrDefault("observaciones", null);
+
+        Map<String, Object> result = notaVentaService.crearVentaPresencial(
+                idComanda, idMetodoPago, idCliente, nit,
+                descuentoPorcentual, descuentoFijo,
+                propinaPorcentual, propinaFija,
+                observaciones);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PutMapping("/{id}")
