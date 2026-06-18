@@ -14,6 +14,7 @@ import org.restobar.gaira.modulo_electronico.repository.CarritoComprasRepository
 import org.restobar.gaira.modulo_electronico.repository.ItemCarritoRepository;
 import org.restobar.gaira.modulo_operaciones.service.comanda.ComandaService;
 import org.restobar.gaira.modulo_operaciones.entity.Comanda;
+import org.restobar.gaira.modulo_electronico.service.entrega.EntregaService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -64,6 +65,7 @@ public class CarritoService {
     private final ComandaService comandaService;
     private final NotaVentaService notaVentaService;
     private final ClienteRepository clienteRepository;
+    private final EntregaService entregaService;
 
     /**
      * Repositorio JPA proyectado sobre {@code producto_sucursal}.
@@ -292,7 +294,9 @@ public class CarritoService {
      * @return ID de la comanda creada (manejado por CU21).
      */
     @Transactional
-    public Long checkout(Long idCliente, Long idSucursal, Long idMetodoPago) {
+    public Long checkout(Long idCliente, Long idSucursal, Long idMetodoPago,
+                         String direccionEntrega, BigDecimal latitud,
+                         BigDecimal longitud, BigDecimal costoEnvio) {
         if (idCliente == null) {
             throw new ResponseStatusException(UNAUTHORIZED,
                     "Debe iniciar sesión para completar el pedido");
@@ -357,7 +361,8 @@ public class CarritoService {
 
         // Delegar creación de comanda al servicio de CU21 (inyección externa)
         // El id del carrito se pasa para que comanda.id_carrito quede referenciado.
-        Long idComanda = crearComandaOnline(carritoDb, idCliente, idSucursal, idMetodoPago, psMap, items);
+        Long idComanda = crearComandaOnline(carritoDb, idCliente, idSucursal, idMetodoPago,
+                psMap, items, direccionEntrega, latitud, longitud, costoEnvio);
 
         // Eliminar carrito de Redis
         deleteRedisCart(key);
@@ -484,7 +489,11 @@ public class CarritoService {
             Long idSucursal,
             Long idMetodoPago,
             Map<Long, ProductoSucursalProjection> psMap,
-            Map<String, Object> items) {
+            Map<String, Object> items,
+            String direccionEntrega,
+            BigDecimal latitud,
+            BigDecimal longitud,
+            BigDecimal costoEnvio) {
 
         Map<Long, BigDecimal> precios = new java.util.HashMap<>();
         for (Map.Entry<Long, ProductoSucursalProjection> entry : psMap.entrySet()) {
@@ -537,6 +546,25 @@ public class CarritoService {
                 java.util.Arrays.asList(notaItems));
 
         log.info("Checkout completado: Comanda {} -> NotaVenta {}", comanda.getNumeroComanda(), notaVenta.getIdNotaVenta());
+
+        // Auto-crear entrega si el cliente proporciono coordenadas de envio
+        if (direccionEntrega != null && !direccionEntrega.isBlank()
+                && latitud != null && longitud != null) {
+            try {
+                entregaService.crearEntrega(
+                        comanda.getIdComanda(),
+                        direccionEntrega,
+                        latitud,
+                        longitud,
+                        costoEnvio != null ? costoEnvio : BigDecimal.ZERO);
+                log.info("Entrega auto-creada para comanda {}", comanda.getNumeroComanda());
+            } catch (Exception e) {
+                log.warn("No se pudo crear entrega automatica para comanda {}: {}",
+                        comanda.getNumeroComanda(), e.getMessage());
+                // No fallar el checkout si la entrega no se pudo crear
+            }
+        }
+
         return notaVenta.getIdNotaVenta();
     }
 

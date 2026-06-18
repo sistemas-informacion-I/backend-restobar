@@ -40,6 +40,7 @@ import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
+import org.restobar.gaira.modulo_electronico.repository.EntregaRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final org.restobar.gaira.modulo_operaciones.repository.MesaRepository mesaRepository;
     private final PayPalGatewayService payPalGatewayService;
     private final PayPalMapper payPalMapper;
+    private final EntregaRepository entregaRepository;
 
     @Value("${paypal.return-url:http://localhost:3000/api/paypal/success}")
     private String paypalReturnUrl;
@@ -243,7 +245,19 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         List<NotaVenta> notasVenta = notaVentaRepository.findByClienteUsername(username);
         return notasVenta.stream()
                 .map(notaVentaMapper::toResponseMap)
+                .peek(this::enriquecerConEntrega)
                 .collect(Collectors.toList());
+    }
+
+    private void enriquecerConEntrega(Map<String, Object> response) {
+        Long idComanda = response.get("idComanda") instanceof Number n ? n.longValue() : null;
+        if (idComanda == null) return;
+        entregaRepository.findByComandaIdComanda(idComanda).ifPresent(e -> {
+            response.put("idEntrega", e.getIdEntrega());
+            response.put("estadoEntrega", e.getEstado().name());
+            response.put("latitudActual", e.getLatitudActual());
+            response.put("longitudActual", e.getLongitudActual());
+        });
     }
 
     /**
