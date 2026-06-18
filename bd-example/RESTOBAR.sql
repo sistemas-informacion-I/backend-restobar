@@ -217,6 +217,8 @@ CREATE TABLE sucursal (
     horario_cierre TIME,
     ciudad VARCHAR(100),
     ubicacion VARCHAR(100),
+    latitud NUMERIC(10,8),
+    longitud NUMERIC(11,8),
     activo BOOLEAN DEFAULT TRUE NOT NULL,
     CONSTRAINT chk_horario_sucursal CHECK (horario_cierre IS NULL OR horario_apertura IS NULL OR horario_cierre > horario_apertura),
     CONSTRAINT chk_correo_sucursal CHECK (correo IS NULL OR correo ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
@@ -632,3 +634,33 @@ CREATE TABLE alerta_inv (
     )
 );
 
+-- Tabla: UBICACION_EMPLEADO (_ECOMMERCE_)
+CREATE TABLE ubicacion_empleado (
+    id_ubicacion SERIAL PRIMARY KEY,
+    id_empleado INTEGER NOT NULL,
+    latitud NUMERIC(10,8) NOT NULL,
+    longitud NUMERIC(11,8) NOT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado) ON DELETE CASCADE
+);
+
+-- Tabla: ENTREGA (_ECOMMERCE_)
+CREATE TABLE entrega (
+    id_entrega SERIAL PRIMARY KEY,
+    id_comanda INTEGER NOT NULL UNIQUE,
+    id_empleado INTEGER,
+    direccion_entrega TEXT NOT NULL,
+    latitud NUMERIC(10,8) NOT NULL,
+    longitud NUMERIC(11,8) NOT NULL,
+    latitud_actual NUMERIC(10,8),
+    longitud_actual NUMERIC(11,8),
+    distancia_km NUMERIC(10,2),
+    tiempo_estimado_min INTEGER,
+    costo_envio NUMERIC(10,2) DEFAULT 0 NOT NULL CHECK (costo_envio >= 0),
+    estado VARCHAR(30) DEFAULT 'PENDIENTE' NOT NULL CHECK (estado IN ('PENDIENTE', 'ASIGNADO', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO')),
+    fecha_asignacion TIMESTAMP,
+    fecha_entrega TIMESTAMP,
+    observaciones TEXT,
+    FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda),
+    FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado)
+);

@@ -75,6 +75,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("COMPRAS", "compras", List.of("create", "read", "update", "delete"));
         seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
         seedModulo("VENTAS", "ventas", List.of("create", "read", "update", "delete"));
+        seedModulo("ENTREGAS", "entregas", List.of("create", "read", "update"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -89,12 +90,16 @@ public class InitializerSeeder implements CommandLineRunner {
         Rol mesero = seedRol("MESERO", "Personal de atención a clientes", 5);
         Rol cocinero = seedRol("COCINERO", "Personal de producción", 5);
         Rol bartender = seedRol("BARTENDER", "Personal de bar", 5);
+        Rol repartidor = seedRol("REPARTIDOR", "Personal de reparto y entregas a domicilio", 5);
 
         // Permisos operativos del personal (comandas / preparación) - CU14
         syncOperationalStaffPermissions(mesero, cajero, cocinero, bartender);
 
         // Permisos de ventas presenciales para el cajero - CU15
         syncCajeroPermissions(cajero);
+
+        // Permisos de entregas para repartidores - CU30
+        syncRepartidorPermissions(repartidor);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -154,7 +159,7 @@ public class InitializerSeeder implements CommandLineRunner {
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
             "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
-            "VENTAS"
+            "VENTAS", "ENTREGAS"
         );
         
         permisoRepository.findAll().forEach(p -> {
@@ -218,6 +223,16 @@ public class InitializerSeeder implements CommandLineRunner {
                 seedRolPermiso(rol, p);
             }
         });
+    }
+
+    private void syncRepartidorPermissions(Rol rol) {
+        // Permisos de entregas para repartidores (CU30).
+        // Lectura de entregas + lectura de comandas, clientes y sucursales (datos necesarios).
+        assignPermisos(rol, List.of(
+                "entregas:read", "entregas:update",
+                "comandas:read", "clients:read",
+                "producto:read", "sucursales:read"
+        ));
     }
 
     private void seedRolPermiso(Rol rol, Permiso permiso) {

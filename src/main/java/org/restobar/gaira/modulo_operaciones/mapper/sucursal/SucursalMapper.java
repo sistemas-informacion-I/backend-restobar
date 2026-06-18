@@ -35,6 +35,8 @@ public class SucursalMapper {
                         .findFirst()
                         .map(es -> es.getEmpleado().getUsuario().getNombre() + " " + es.getEmpleado().getUsuario().getApellido())
                         .orElse("Sin asignar"))
+                .latitud(s.getLatitud())
+                .longitud(s.getLongitud())
                 .empleados(s.getEmpleadoSucursales().stream()
                         .filter(es -> Boolean.TRUE.equals(es.getActivo()))
                         .map(es -> SucursalResponseDTO.EmpleadoDetalleDTO.builder()
