@@ -159,11 +159,6 @@ UPDATE sucursal SET latitud = -17.78601100, longitud = -63.18081700 WHERE nombre
 --     pueda actuar como repartidor sin registro en tabla empleado
 ALTER TABLE entrega ADD COLUMN IF NOT EXISTS id_usuario_repartidor INTEGER;
 
--- Migrar datos existentes (id_empleado -> empleado.id_usuario -> id_usuario_repartidor)
-UPDATE entrega e SET id_usuario_repartidor = emp.id_usuario
-FROM empleado emp
-WHERE e.id_empleado = emp.id_empleado AND e.id_empleado IS NOT NULL AND e.id_usuario_repartidor IS NULL;
-
 -- FK y FK eliminados (superuser no necesita empleado)
 ALTER TABLE entrega DROP CONSTRAINT IF EXISTS entrega_id_empleado_fkey;
 ALTER TABLE ubicacion_empleado DROP CONSTRAINT IF EXISTS ubicacion_empleado_id_empleado_fkey;
