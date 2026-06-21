@@ -26,6 +26,8 @@ import org.restobar.gaira.modulo_comercial.mapper.notaVenta.NotaVentaMapper;
 import org.restobar.gaira.modulo_comercial.repository.detalleNotaVenta.DetalleNotaVentaRepository;
 import org.restobar.gaira.modulo_comercial.repository.ProductoFinalRepository;
 import org.restobar.gaira.modulo_comercial.repository.notaVenta.NotaVentaRepository;
+import org.restobar.gaira.modulo_comercial.entity.MovimientoCaja;
+import org.restobar.gaira.modulo_comercial.service.caja.CajaService;
 import org.restobar.gaira.modulo_electronico.dto.paypal.PayPalCreateOrderRequest;
 import org.restobar.gaira.modulo_electronico.dto.paypal.PayPalCreateOrderResponse;
 import org.restobar.gaira.modulo_electronico.entity.MetodoPago;
@@ -69,6 +71,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final org.restobar.gaira.modulo_operaciones.repository.MesaRepository mesaRepository;
     private final PayPalGatewayService payPalGatewayService;
     private final PayPalMapper payPalMapper;
+    private final CajaService cajaService;
 
     @Value("${paypal.return-url:http://localhost:3000/api/paypal/success}")
     private String paypalReturnUrl;
@@ -462,6 +465,17 @@ public class NotaVentaService implements AuditableService<Long, Object> {
             notaVenta.setEstado(Estado.PAGADA);
             notaVenta.setFechaPago(LocalDateTime.now());
             notaVentaRepository.save(notaVenta);
+
+            // CU22 (Caja): el cobro presencial en efectivo genera un INGRESO automático
+            // en la caja ABIERTA de la sucursal. Validación estricta: si no hay caja
+            // abierta, el cobro se rechaza y toda la transacción hace rollback (ACID).
+            cajaService.registrarMovimientoAutomatico(
+                    idSucursal,
+                    MovimientoCaja.Tipo.INGRESO,
+                    MovimientoCaja.Concepto.VENTA,
+                    total,
+                    "Venta presencial - Comanda " + comanda.getNumeroComanda(),
+                    notaVenta.getIdNotaVenta());
 
             comanda.setEstado(Comanda.EstadoComanda.CERRADA.name());
             comandaRepository.save(comanda);
