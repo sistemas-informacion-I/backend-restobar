@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 
 
@@ -46,7 +47,7 @@ public class sucursalController {
         
     @PostMapping
     @PreAuthorize("hasAuthority('sucursales:create')")
-    public ResponseEntity<SucursalResponseDTO> crear( @RequestBody SucursalRequestDTO dto) { // una forma de obtener ese dato del front  
+    public ResponseEntity<SucursalResponseDTO> crear(@Valid @RequestBody SucursalRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(sucursalService.crear(dto));
     }
 

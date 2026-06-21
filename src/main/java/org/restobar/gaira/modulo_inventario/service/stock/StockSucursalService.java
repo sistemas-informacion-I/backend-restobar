@@ -19,6 +19,7 @@ import org.restobar.gaira.modulo_inventario.mapper.stock.StockSucursalMapper;
 import org.restobar.gaira.modulo_inventario.repository.InventarioRepository;
 import org.restobar.gaira.modulo_inventario.repository.LoteInventarioRepository;
 import org.restobar.gaira.modulo_inventario.repository.StockSucursalRepository;
+import org.restobar.gaira.modulo_inventario.service.alerta.AlertaInventarioService;
 import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
@@ -41,6 +42,7 @@ public class StockSucursalService implements AuditableService<Long, Object> {
     private final InventarioRepository inventarioRepository;
     private final SucursalRepository sucursalRepository;
     private final LoteInventarioRepository loteRepository;
+    private final AlertaInventarioService alertaService;
     private final StockSucursalMapper stockMapper;
     private final LoteMapper loteMapper;
 
@@ -82,8 +84,9 @@ public class StockSucursalService implements AuditableService<Long, Object> {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada"));
 
         StockSucursal stock = stockMapper.toEntity(dto, inventario, sucursal);
-
-        return stockMapper.toResponse(stockRepository.save(stock));
+        StockSucursal savedStock = stockRepository.save(stock);
+        alertaService.generarAlertaStockMinimoParaStock(savedStock);
+        return stockMapper.toResponse(savedStock);
     }
 
     @Transactional
@@ -137,6 +140,8 @@ public class StockSucursalService implements AuditableService<Long, Object> {
                 // Después de mover lotes, recalculamos el stock total y precios desde los lotes
                 // activos.
                 stock = recalcularStockDesdeLotes(stock.getIdStock());
+                alertaService.resolverAlertasPorStock(stock);
+                alertaService.generarAlertaStockMinimoParaStock(stock);
                 return stockMapper.toResponse(stock);
 
             } catch (OptimisticLockException | ObjectOptimisticLockingFailureException e) {

@@ -14,6 +14,7 @@ import org.restobar.gaira.modulo_inventario.repository.DetalleNotaSalidaReposito
 import org.restobar.gaira.modulo_inventario.repository.LoteInventarioRepository;
 import org.restobar.gaira.modulo_inventario.repository.NotaSalidaRepository;
 import org.restobar.gaira.modulo_inventario.repository.StockSucursalRepository;
+import org.restobar.gaira.modulo_inventario.service.alerta.AlertaInventarioService;
 import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class NotaSalidaService {
     private final EmpleadoRepository empleadoRepository;
     private final StockSucursalRepository stockSucursalRepository;
     private final LoteInventarioRepository loteInventarioRepository;
+    private final AlertaInventarioService alertaService;
     private final NotaSalidaMapper notaSalidaMapper;
 
     public NotaSalidaService(NotaSalidaRepository notaSalidaRepository,
@@ -42,6 +44,7 @@ public class NotaSalidaService {
                              EmpleadoRepository empleadoRepository,
                              StockSucursalRepository stockSucursalRepository,
                              LoteInventarioRepository loteInventarioRepository,
+                             AlertaInventarioService alertaService,
                              NotaSalidaMapper notaSalidaMapper) {
         this.notaSalidaRepository = notaSalidaRepository;
         this.detalleRepository = detalleRepository;
@@ -49,6 +52,7 @@ public class NotaSalidaService {
         this.empleadoRepository = empleadoRepository;
         this.stockSucursalRepository = stockSucursalRepository;
         this.loteInventarioRepository = loteInventarioRepository;
+        this.alertaService = alertaService;
         this.notaSalidaMapper = notaSalidaMapper;
     }
 
@@ -173,6 +177,7 @@ public class NotaSalidaService {
         }
 
         stockSucursalRepository.save(stock);
+        alertaService.resolverAlertasPorStock(stock);
     }
 
     @Transactional(readOnly = true)

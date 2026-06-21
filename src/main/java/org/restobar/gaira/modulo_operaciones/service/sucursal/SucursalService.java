@@ -95,8 +95,6 @@ public class SucursalService implements AuditableService<Long, Object> {
     @Transactional
     @Auditable(tabla = "sucursal", operacion = "INSERT")
     public SucursalResponseDTO crear(SucursalRequestDTO dto) {
-        validarSuperusuario();
-
         if (sucursalRepository.existsByCorreo(dto.getCorreo())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe una sucursal con ese correo");
         }
