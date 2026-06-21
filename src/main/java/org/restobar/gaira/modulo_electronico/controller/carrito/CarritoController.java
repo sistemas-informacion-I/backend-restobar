@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.Map;
+import java.math.BigDecimal;
 
 /**
  * Endpoints REST del carrito de compras online (CU20).
@@ -128,16 +129,22 @@ public class CarritoController {
      * Convierte el carrito en comanda ONLINE + NotaVenta EMITIDA.
      * Requiere autenticación (el cliente anónimo debe haber iniciado sesión).
      * Retorna idNotaVenta para usar con la pasarela de pago (PayPal).
+     * Si se proveen coordenadas de entrega, se crea automaticamente el registro de Entrega.
      */
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Long>> checkout(
             @RequestParam Long idSucursal,
             @RequestParam(required = false) Long idMetodoPago,
+            @RequestParam(required = false) String direccionEntrega,
+            @RequestParam(required = false) BigDecimal latitud,
+            @RequestParam(required = false) BigDecimal longitud,
+            @RequestParam(required = false) BigDecimal costoEnvio,
             Authentication authentication) {
 
         Long idCliente = resolveIdClienteRequerido(authentication);
-        Long idNotaVenta = carritoService.checkout(idCliente, idSucursal, idMetodoPago);
+        Long idNotaVenta = carritoService.checkout(idCliente, idSucursal, idMetodoPago,
+                direccionEntrega, latitud, longitud, costoEnvio);
 
         return ResponseEntity
                 .created(URI.create("/notas-venta/" + idNotaVenta))

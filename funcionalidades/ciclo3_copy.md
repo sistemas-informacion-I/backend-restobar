@@ -368,15 +368,8 @@ Pantalla de cocina/barra que muestra los ítems pendientes, permite avanzar su e
 ---
 
 
-### 1. Extender `cliente` (coordenadas para delivery)
-- latitud(10, 7), longitud(10, 7), direccion_entrega
-```sql
-ALTER TABLE cliente ADD COLUMN latitud NUMERIC(10,7);
-ALTER TABLE cliente ADD COLUMN longitud NUMERIC(10,7);
-```
-Opcionalmente, crear una tabla `direccion_cliente` si se quiere historial, pero mínimo se puede almacenar una dirección por defecto en `cliente`.
 
-### 2. Tabla `ubicacion_empleado` (posición actual del repartidor)
+### 1. Tabla `ubicacion_empleado` (posición actual del repartidor)
 ```sql
 CREATE TABLE ubicacion_empleado (
     id_ubicacion SERIAL PRIMARY KEY,
@@ -388,15 +381,17 @@ CREATE TABLE ubicacion_empleado (
 );
 ```
 
-### 3. Tabla `entrega` (nueva, para el caso de uso)
+### 2. Tabla `entrega` (nueva, para el caso de uso)
 ```sql
 CREATE TABLE entrega (
     id_entrega SERIAL PRIMARY KEY,
     id_comanda INTEGER NOT NULL UNIQUE,  -- una comanda online puede tener una entrega
     id_empleado INTEGER,               -- empleado con rol REPARTIDOR
     direccion_entrega TEXT NOT NULL,
-    latitud NUMERIC(10,7) NOT NULL,
-    longitud NUMERIC(10,7) NOT NULL,
+    latitud NUMERIC(10,8) NOT NULL,      -- Destino (cliente)
+    longitud NUMERIC(11,8) NOT NULL,     -- Destino (cliente)
+    latitud_actual NUMERIC(10,8),        -- Ubicación en tiempo real del repartidor
+    longitud_actual NUMERIC(11,8),       -- Ubicación en tiempo real del repartidor
     distancia_km NUMERIC(10,2),          -- distancia calculada desde sucursal
     tiempo_estimado_min INTEGER,         -- tiempo estimado de llegada
     costo_envio NUMERIC(10,2) DEFAULT 0 NOT NULL CHECK (costo_envio >= 0),
@@ -445,27 +440,35 @@ Gestionar la logística de envío de pedidos online desde que la cocina termina 
 - Cuando una comanda `ONLINE` pasa a estado `LISTA` (preparación finalizada en CU25), el sistema crea automáticamente un registro en la tabla `entrega` con:
   - `direccion_entrega`, `latitud`, `longitud` tomadas del cliente (previamente guardadas o ingresadas en el checkout).
   - `costo_envio` ya calculado en el pago (no se recalcula aquí).
-  - `distancia_km` y `tiempo_estimado_min` calculados con **OSRM** desde la sucursal.
+  - `distancia_km` y `tiempo_estimado_min` calculados con **OSRM** desde la sucursal (punto A) hasta la ubicación del cliente (punto B).
   - `estado = 'PENDIENTE'`.
 
-#### 2. Asignación de repartidor (Manual)
-- Un Empleado ve la lista de entregas pendientes.
-- Selecciona un pedido disponible: empleado con rol `REPARTIDOR` que no tenga entregas en estado `ASIGNADO` o `EN_CAMINO`. Un repartidor solo puede tener una entrega activa a la vez y asignarse a si mismo.
-- Al asignar, se actualiza `id_repartidor`, `fecha_asignacion` y el estado cambia a `ASIGNADO`.
+#### 2. Reglas de distanciamiento y disponibilidad
+- **Punto A (Origen):** Sucursal que recibe el pedido. La tabla `sucursal` debe tener `latitud` y `longitud` para calcular la distancia exacta.
+- **Punto B (Destino):** Ubicación que el cliente marca al hacer el pedido (latitud/longitud guardadas en la tabla `entrega`).
+- **Radio máximo de 2 km:** Solo se notifica a los repartidores que estén a menos de 2 km de la sucursal (punto A). La distancia se calcula con **fórmula de Haversine** entre la ubicación actual del repartidor (`ubicacion_empleado`) y las coordenadas de la sucursal.
+- **Un repartidor, un pedido a la vez:** Si un repartidor ya tiene una entrega en estado `ASIGNADO` o `EN_CAMINO`, **no recibe notificaciones** de nuevos pedidos y **no puede aceptar** otros hasta finalizar la entrega actual.
 
-#### 3. Vista del repartidor (App Móvil / Portal)
+#### 3. Asignación de repartidor (Aceptación voluntaria)
+- El sistema envía un **broadcast vía WebSocket** a todos los repartidores disponibles dentro del radio de 2 km de la sucursal.
+- Un repartidor ve la notificación del nuevo pedido y puede **aceptarlo** voluntariamente.
+- Al aceptar, se actualiza `id_empleado` en la entrega, `fecha_asignacion` y el estado cambia a `ASIGNADO`.
+- Si ningún repartidor acepta en un tiempo configurable (ej. 3 minutos), el pedido queda como `PENDIENTE` y se puede reintentar o escalar a Admin/SU.
+
+#### 4. Vista del repartidor (App Móvil / Portal)
 - El repartidor inicia sesión y ve sus entregas asignadas.
-- **Aceptar y comenzar:** Cambia estado a `EN_CAMINO`.
-- **Reportar ubicación:** Periódicamente (ej. cada 5-10s) la app envía coordenadas que se guardan en `ubicacion_empleado`.
-- **Marcar como entregado:** Al confirmar la entrega, el estado cambia a `ENTREGADO`, `fecha_entrega = NOW()`.
-- La comanda asociada pasa a `CERRADA` y la nota de venta a `PAGADA`.
+- **Aceptar pedido:** Solo aparece la opción de aceptar si el repartidor está dentro del radio de 2 km de la sucursal y no tiene otra entrega activa.
+- **Comenzar viaje:** Cambia estado a `EN_CAMINO`.
+- **Reportar ubicación:** Periódicamente (ej. cada 5-10s) la app envía coordenadas que se guardan en `ubicacion_empleado`. Si se sale del radio de 2 km de la sucursal, pierde la opción de aceptar nuevos pedidos, pero continúa con la entrega en curso.
+- **Marcar como entregado:** Al confirmar la entrega, el estado cambia a `ENTREGADO`, `fecha_entrega = NOW()`. La comanda asociada pasa a `CERRADA` y la nota de venta a `PAGADA`.
 
-#### 4. Seguimiento del cliente
+#### 5. Seguimiento del cliente
 - El cliente, desde su historial de pedidos, puede ver el estado real de su entrega.
 - Mientras el estado es `EN_CAMINO`, el mapa muestra la posición del repartidor (última coordenada de `ubicacion_empleado`) y la ruta estimada.
 
 ### Cuidados y advertencias
-- **Un repartidor, una entrega:** Verificar disponibilidad estricta antes de asignar.
+- **Un repartidor, una entrega:** Verificar disponibilidad estricta antes de notificar. Si ya tiene `ASIGNADO` o `EN_CAMINO`, no recibe el broadcast.
+- **Radio de 2 km:** Calcular distancia Haversine entre ubicación del repartidor y sucursal antes de enviar notificación. Repartidores fuera del radio no participan.
 - **Privacidad:** La ubicación del repartidor solo es visible para el cliente del pedido en curso.
 - **Fallas de entrega:** Solo Admin/SU pueden cancelar una entrega (`CANCELADO`) por incidentes graves.
 
@@ -475,7 +478,8 @@ Gestionar la logística de envío de pedidos online desde que la cocina termina 
 | `comanda`              | Lectura, actualización (cierre)     | Base del pedido online |
 | `entrega`              | CRUD                                | Gestión del transporte |
 | `empleado`             | Lectura                             | Repartidores activos |
-| `ubicacion_empleado`   | Inserción, consulta (última)        | Tracking en tiempo real |
+| `ubicacion_empleado`   | Inserción, consulta (última)        | Tracking en tiempo real + cálculo de distancia (Haversine) |
+| `sucursal`             | Lectura (latitud, longitud)         | Punto A (origen) para calcular radio de 2 km |
 | `cliente`              | Lectura                             | Destino y datos de contacto |
 | `nota_venta`           | Actualización (estado)              | Cierre administrativo del pago |
 | `log_auditoria`        | Inserción                           | Historial de estados de entrega |
@@ -485,9 +489,37 @@ Gestionar la logística de envío de pedidos online desde que la cocina termina 
 - **Ciclo 3:** Comandas Online (CU20), Pago (CU21), Preparación finalizada (CU25).
 - **Ciclo 4:** Reportes de eficiencia logística (tiempos de entrega).
 
+### Aspectos Críticos Faltantes (Arquitectura de Seguimiento y Georreferenciación)
+
+Para lograr el mapeo en tiempo real (similar al proyecto *AutoRepair*) sin desarrollo móvil nativo (usando web responsiva/PWA), se deben incorporar las siguientes correcciones al diseño:
+
+#### 1. Correcciones en la Base de Datos (Geolocalización)
+- **Sucursal (`sucursal`):** La tabla JPA ya tiene `latitud NUMERIC(10,8)` y `longitud NUMERIC(11,8)` como punto de origen (A). El DDL SQL debe actualizarse para incluir estos campos si no existen.
+- **Cliente (Uso de `entrega` en su lugar):** No es necesario modificar la tabla `cliente`. Las coordenadas de destino (`latitud`, `longitud`) y la `direccion_entrega` ingresadas por el cliente al hacer el pedido se guardan directamente en el registro de la tabla `entrega`.
+- **Repartidor / Entrega:** Para optimizar las consultas del mapa en tiempo real, se han agregado `latitud_actual NUMERIC(10,8)` y `longitud_actual NUMERIC(11,8)` directamente a la tabla `entrega`. Esto permite actualizar y consultar la posición instantánea sin saturar la base de datos leyendo el historial de `ubicacion_empleado`.
+- **Cálculo de distancia (Haversine):** La función `haversine(lat1, lon1, lat2, lon2)` se ejecuta en PostgreSQL para determinar qué repartidores están dentro del radio de 2 km de la sucursal. Consulta típica:
+  ```sql
+  SELECT u.id_empleado, u.latitud, u.longitud
+  FROM ubicacion_empleado u
+  INNER JOIN empleado e ON u.id_empleado = e.id_empleado
+  WHERE e.id_empleado NOT IN (
+      SELECT id_empleado FROM entrega WHERE estado IN ('ASIGNADO', 'EN_CAMINO')
+  )
+  AND haversine(u.latitud, u.longitud, :sucursal_lat, :sucursal_lng) < 2.0;
+  ```
+
+#### 2. Arquitectura de WebSockets (Adaptación a STOMP existente)
+Ya se cuenta con un `WebSocketService` (Spring Boot + STOMP) en el backend. Sin embargo, para el rastreo no es suficiente con el broadcast a nivel de sucursal (`emitirEventoSucursal`), ya que enviaría las coordenadas de todos los repartidores a todos los usuarios conectados. La arquitectura debe usar tópicos específicos:
+- **Tópico Específico:** En lugar de emitir a `/topic/sucursal/{id}`, se debe emitir a `/topic/entrega/{id_entrega}`.
+- **Roles de Conexión:**
+  - **Repartidor:** Emite eventos con sus coordenadas actuales (usando `navigator.geolocation.watchPosition` en PWA) hacia el servidor mediante STOMP. El backend actualiza el caché (Redis) o la tabla `entrega` (con un debouncing/rate limit).
+  - **Cliente/Admin:** Se suscriben al canal `/topic/entrega/{id_entrega}`. El `WebSocketService` retransmitirá la posición solo a quienes estén suscritos a esa entrega específica.
+- **Persistencia diferida:** En lugar de saturar PostgreSQL escribiendo la ubicación constantemente en `ubicacion_empleado` o `entrega`, el servidor recibe el STOMP, puede hacer broadcast inmediato, y actualizar la BD física cada cierto tiempo (ej. cada 15 segundos o 1 minuto) o al cambiar de estado.
+
 ### Tecnologías
-- **OpenStreetMap + OSRM:** Para rutas y tiempos estimados.
-- **Leaflet.js / Mapbox:** Para visualización en mapas.
-- **WebSockets:** Para transmisión de ubicación al cliente sin recargas.
-- **Redis:** Para almacenar la última ubicación del repartidor y optimizar el tracking.
+- **OpenStreetMap + OSRM:** Para rutas y tiempos estimados (calculando A -> B con coordenadas exactas).
+- **Leaflet.js:** Para la visualización en mapas en el frontend (sin necesidad de desarrollo móvil).
+- **WebSockets (Spring Boot + STOMP):** Uso de la infraestructura existente de websockets para transmisión bidireccional en el tópico específico de la entrega.
+- **API Geolocation HTML5:** Captura continua de ubicación del dispositivo del repartidor (`watchPosition`) ejecutándose desde el navegador web.
+- **Redis:** Para integrarse con la infraestructura actual de Pub/Sub para WebSockets, almacenando la posición instantánea sin penalizar la BD.
 

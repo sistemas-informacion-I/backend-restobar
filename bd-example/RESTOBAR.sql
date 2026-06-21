@@ -217,6 +217,8 @@ CREATE TABLE sucursal (
     horario_cierre TIME,
     ciudad VARCHAR(100),
     ubicacion VARCHAR(100),
+    latitud NUMERIC(10,8),
+    longitud NUMERIC(11,8),
     activo BOOLEAN DEFAULT TRUE NOT NULL,
     CONSTRAINT chk_horario_sucursal CHECK (horario_cierre IS NULL OR horario_apertura IS NULL OR horario_cierre > horario_apertura),
     CONSTRAINT chk_correo_sucursal CHECK (correo IS NULL OR correo ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
@@ -609,4 +611,56 @@ CREATE TABLE detalle_comanda (
     FOREIGN KEY (id_producto_final) REFERENCES producto_final(id_producto_final)
 );
 
+-- Tabla: ALERTA_INV (_INVENTARIO_)
+CREATE TABLE alerta_inv (
+    id_alerta SERIAL PRIMARY KEY,
+    id_sucursal INTEGER NOT NULL,
+    id_stock INTEGER,
+    id_lote INTEGER,
+    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('STOCK_MINIMO', 'STOCK_MAXIMO', 'VENCIMIENTO_PROXIMO')),
+    mensaje TEXT NOT NULL,
+    estado VARCHAR(20) DEFAULT 'NO_LEIDA' NOT NULL CHECK (estado IN ('NO_LEIDA', 'LEIDA', 'RESUELTA')),
+    fecha_generacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    fecha_resolucion TIMESTAMP,
+    FOREIGN KEY (id_sucursal) REFERENCES sucursal(id_sucursal) ON DELETE CASCADE,
+    FOREIGN KEY (id_stock) REFERENCES stock_sucursal(id_stock) ON DELETE CASCADE,
+    FOREIGN KEY (id_lote) REFERENCES lote_inventario(id_lote) ON DELETE CASCADE,
+    CONSTRAINT chk_alerta_origen CHECK (
+        (tipo IN ('STOCK_MINIMO', 'STOCK_MAXIMO') AND id_stock IS NOT NULL) OR
+        (tipo = 'VENCIMIENTO_PROXIMO' AND id_lote IS NOT NULL)
+    ),
+    CONSTRAINT chk_alerta_resolucion CHECK (
+        fecha_resolucion IS NULL OR fecha_resolucion >= fecha_generacion
+    )
+);
 
+-- Tabla: UBICACION_EMPLEADO (_ECOMMERCE_)
+CREATE TABLE ubicacion_empleado (
+    id_ubicacion SERIAL PRIMARY KEY,
+    id_empleado INTEGER NOT NULL,
+    latitud NUMERIC(10,8) NOT NULL,
+    longitud NUMERIC(11,8) NOT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado) ON DELETE CASCADE
+);
+
+-- Tabla: ENTREGA (_ECOMMERCE_)
+CREATE TABLE entrega (
+    id_entrega SERIAL PRIMARY KEY,
+    id_comanda INTEGER NOT NULL UNIQUE,
+    id_empleado INTEGER,
+    direccion_entrega TEXT NOT NULL,
+    latitud NUMERIC(10,8) NOT NULL,
+    longitud NUMERIC(11,8) NOT NULL,
+    latitud_actual NUMERIC(10,8),
+    longitud_actual NUMERIC(11,8),
+    distancia_km NUMERIC(10,2),
+    tiempo_estimado_min INTEGER,
+    costo_envio NUMERIC(10,2) DEFAULT 0 NOT NULL CHECK (costo_envio >= 0),
+    estado VARCHAR(30) DEFAULT 'PENDIENTE' NOT NULL CHECK (estado IN ('PENDIENTE', 'ASIGNADO', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO')),
+    fecha_asignacion TIMESTAMP,
+    fecha_entrega TIMESTAMP,
+    observaciones TEXT,
+    FOREIGN KEY (id_comanda) REFERENCES comanda(id_comanda),
+    FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado)
+);

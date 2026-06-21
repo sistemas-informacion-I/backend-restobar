@@ -1,5 +1,6 @@
 package org.restobar.gaira.modulo_operaciones.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalTime; //JPA
 import java.util.ArrayList; //validaciones
 import java.util.LinkedList; //evita escribir setters y getters
@@ -68,6 +69,15 @@ public class Sucursal {
 
     @Column(name = "ciudad", length = 100)
     private String ciudad;
+
+    @Column(name = "ubicacion", length = 100)
+    private String ubicacion;
+
+    @Column(name = "latitud", precision = 10, scale = 8)
+    private BigDecimal latitud;
+
+    @Column(name = "longitud", precision = 11, scale = 8)
+    private BigDecimal longitud;
 
     @Column(name = "departamento", length = 100)
     private String departamento;

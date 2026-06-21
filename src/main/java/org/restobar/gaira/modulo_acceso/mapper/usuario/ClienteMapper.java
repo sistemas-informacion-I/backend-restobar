@@ -11,15 +11,27 @@ public class ClienteMapper {
 
     public ClienteResponse toResponse(Cliente cliente) {
         if (cliente == null) return null;
+        var usuario = cliente.getUsuario();
         return new ClienteResponse(
                 cliente.getIdCliente(),
-                cliente.getUsuario() != null ? cliente.getUsuario().getIdUsuario() : null,
+                usuario != null ? usuario.getIdUsuario() : null,
                 cliente.getNit(),
                 cliente.getRazonSocial(),
                 cliente.getFechaNacimiento(),
                 cliente.getPuntosFidelidad(),
                 cliente.getNivelCliente(),
-                cliente.getObservaciones());
+                cliente.getObservaciones(),
+                buildNombreCompleto(usuario),
+                usuario != null ? usuario.getCorreo() : null,
+                usuario != null ? usuario.getTelefono() : null);
+    }
+
+    private String buildNombreCompleto(org.restobar.gaira.modulo_acceso.entity.Usuario usuario) {
+        if (usuario == null) return null;
+        String nombre = usuario.getNombre() != null ? usuario.getNombre() : "";
+        String apellido = usuario.getApellido() != null ? usuario.getApellido() : "";
+        String full = (nombre + " " + apellido).trim();
+        return full.isEmpty() ? null : full;
     }
 
     public Map<String, Object> toAuditMap(Cliente cliente) {

@@ -63,6 +63,8 @@ public class SecurityConfig {
                                 "/api/catalogo/**",
                                 "/api/paypal/**",
                                 "/carrito/**",
+                                "/reservas",
+                                "/reservas/disponibilidad",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

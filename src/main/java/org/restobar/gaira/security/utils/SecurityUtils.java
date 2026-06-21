@@ -1,6 +1,7 @@
 package org.restobar.gaira.security.utils;
 
 import org.restobar.gaira.modulo_acceso.entity.Usuario;
+import org.restobar.gaira.modulo_acceso.repository.EmpleadoRepository;
 import org.restobar.gaira.modulo_acceso.repository.UsuarioRepository;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.springframework.security.core.Authentication;
@@ -11,11 +12,14 @@ import org.springframework.stereotype.Component;
 public class SecurityUtils {
 
     private final UsuarioRepository usuarioRepository;
+    private final EmpleadoRepository empleadoRepository;
     private final org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository;
 
-    public SecurityUtils(UsuarioRepository usuarioRepository, 
+    public SecurityUtils(UsuarioRepository usuarioRepository,
+                         EmpleadoRepository empleadoRepository,
                         org.restobar.gaira.modulo_operaciones.repository.EmpleadoSucursalRepository empleadoSucursalRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.empleadoRepository = empleadoRepository;
         this.empleadoSucursalRepository = empleadoSucursalRepository;
     }
 
@@ -80,5 +84,17 @@ public class SecurityUtils {
 
     public boolean isSuperUser() {
         return "S".equals(getCurrentUserTipoUsuario());
+    }
+
+    /**
+     * Obtiene el ID del empleado asociado al usuario autenticado.
+     * @return idEmpleado o null si el usuario no tiene registro de empleado.
+     */
+    public Long getCurrentEmpleadoId() {
+        Long idUsuario = getCurrentUserId();
+        if (idUsuario == null) return null;
+        return empleadoRepository.findByUsuario_IdUsuario(idUsuario)
+                .map(e -> e.getIdEmpleado())
+                .orElse(null);
     }
 }

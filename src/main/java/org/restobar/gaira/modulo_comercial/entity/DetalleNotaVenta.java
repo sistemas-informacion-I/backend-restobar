@@ -55,7 +55,7 @@ public class DetalleNotaVenta {
     private BigDecimal descuento = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "sub_total", precision = 10, scale = 2)
+    @Column(name = "subtotal", precision = 10, scale = 2)
     private BigDecimal subTotal = BigDecimal.ZERO;
 
     @Column(name = "descripcion")

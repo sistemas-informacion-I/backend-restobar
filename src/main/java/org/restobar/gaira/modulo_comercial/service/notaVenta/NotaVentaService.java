@@ -40,6 +40,8 @@ import org.restobar.gaira.modulo_operaciones.entity.Sucursal;
 import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
+import org.restobar.gaira.modulo_electronico.repository.EntregaRepository;
+import org.restobar.gaira.shared.websocket.WebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -66,8 +68,11 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final MetodoPagoRepository metodoPagoRepository;
     private final ComandaRepository comandaRepository;
     private final DetalleComandaRepository detalleComandaRepository;
+    private final org.restobar.gaira.modulo_operaciones.repository.MesaRepository mesaRepository;
     private final PayPalGatewayService payPalGatewayService;
     private final PayPalMapper payPalMapper;
+    private final EntregaRepository entregaRepository;
+    private final WebSocketService webSocketService;
 
     @Value("${paypal.return-url:http://localhost:3000/api/paypal/success}")
     private String paypalReturnUrl;
@@ -242,7 +247,19 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         List<NotaVenta> notasVenta = notaVentaRepository.findByClienteUsername(username);
         return notasVenta.stream()
                 .map(notaVentaMapper::toResponseMap)
+                .peek(this::enriquecerConEntrega)
                 .collect(Collectors.toList());
+    }
+
+    private void enriquecerConEntrega(Map<String, Object> response) {
+        Long idComanda = response.get("idComanda") instanceof Number n ? n.longValue() : null;
+        if (idComanda == null) return;
+        entregaRepository.findByComandaIdComanda(idComanda).ifPresent(e -> {
+            response.put("idEntrega", e.getIdEntrega());
+            response.put("estadoEntrega", e.getEstado().name());
+            response.put("latitudActual", e.getLatitudActual());
+            response.put("longitudActual", e.getLongitudActual());
+        });
     }
 
     /**
@@ -287,6 +304,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
             BigDecimal subTotal,
             BigDecimal descuento,
             BigDecimal impuesto,
+            BigDecimal propina,
             BigDecimal total,
             List<ItemData> items) {
 
@@ -304,7 +322,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
                 .subTotal(subTotal)
                 .descuento(descuento)
                 .impuesto(impuesto)
-                .propina(BigDecimal.ZERO)
+                .propina(propina != null ? propina : BigDecimal.ZERO)
                 .total(total)
                 .estado(NotaVenta.Estado.EMITIDA)
                 .build();
@@ -389,6 +407,19 @@ public class NotaVentaService implements AuditableService<Long, Object> {
         BigDecimal total = subtotal.subtract(descuentoTotal).add(impuesto).add(propinaTotal)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        // Resolver el cliente: el enviado explícitamente por el cajero o el que ya
+        // tiene asignado la comanda. La nota de venta exige un cliente (no anónimo).
+        Cliente cliente = idCliente != null
+                ? clienteRepository.findById(idCliente)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Cliente no encontrado: " + idCliente))
+                : comanda.getCliente();
+        if (cliente == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Se requiere un cliente para facturar la venta. Asigne un cliente a la comanda o seleccione uno al cobrar.");
+        }
+        comanda.setCliente(cliente);
+
         Long idSucursal = comanda.getSucursal().getIdSucursal();
 
         List<ItemData> itemDataList = items.stream()
@@ -401,7 +432,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
 
         NotaVenta notaVenta = crearDesdeComanda(
                 comanda, idSucursal, idMetodoPago,
-                subtotal, descuentoTotal, impuesto, total, itemDataList);
+                subtotal, descuentoTotal, impuesto, propinaTotal, total, itemDataList);
 
         MetodoPago metodoPago = metodoPagoRepository.findById(idMetodoPago)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -450,6 +481,21 @@ public class NotaVentaService implements AuditableService<Long, Object> {
 
             comanda.setEstado(Comanda.EstadoComanda.CERRADA.name());
             comandaRepository.save(comanda);
+
+            // Liberar la mesa al cerrar la venta (CU15): vuelve a estar DISPONIBLE.
+            if (comanda.getMesa() != null) {
+                var mesa = comanda.getMesa();
+                mesa.setDisponibilidad("DISPONIBLE");
+                mesaRepository.save(mesa);
+            }
+
+            // Notificar al dashboard para actualizar KPIs en tiempo real
+            try {
+                webSocketService.emitirEventoSucursal(idSucursal, "dashboard/update",
+                        java.util.Map.of("type", "kpi-refresh", "idSucursal", idSucursal));
+            } catch (Exception e) {
+                log.warn("Error al emitir evento WebSocket de dashboard", e);
+            }
 
             response.put("estado", "PAGADA");
         }

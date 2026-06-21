@@ -35,7 +35,12 @@ public class WebSocketService {
             redisTemplate.convertAndSend(REDIS_WEBSOCKET_CHANNEL, message);
             log.debug("Evento publicado a Redis en canal '{}' para tópico '{}'", REDIS_WEBSOCKET_CHANNEL, topic);
         } catch (Exception e) {
-            log.error("Fallo al publicar evento en Redis para el tópico '{}': {}", topic, e.getMessage(), e);
+            log.warn("Redis no disponible, enviando directo al WebSocket tópico '{}': {}", topic, e.getMessage());
+            try {
+                messagingTemplate.convertAndSend(topic, payload);
+            } catch (Exception ex) {
+                log.error("Error enviando directo al WebSocket tópico '{}': {}", topic, ex.getMessage(), ex);
+            }
         }
     }
 
@@ -53,7 +58,30 @@ public class WebSocketService {
     }
 
     /**
-     * Método manejador que se invoca cuando Redis emite un mensaje en el canal.
+     * Emite un evento especifico a los suscriptores de una entrega.
+     * El topico resultante sera: /topic/entrega/{idEntrega}/{subTopic}
+     */
+    public <T> void emitirEventoEntrega(Long idEntrega, String subTopic, T payload) {
+        if (idEntrega == null) {
+            log.warn("Intento de emitir evento de entrega con ID nulo para tema '{}'.", subTopic);
+            return;
+        }
+        String topic = String.format("/topic/entrega/%d/%s", idEntrega, subTopic);
+        emitirEvento(topic, payload);
+    }
+
+    /**
+     * Emite un evento a todos los repartidores conectados para notificar
+     * nuevas entregas o cambios globales (broadcast).
+     * El topico resultante sera: /topic/repartidores/{subTopic}
+     */
+    public <T> void emitirEventoRepartidores(String subTopic, T payload) {
+        String topic = String.format("/topic/repartidores/%s", subTopic);
+        emitirEvento(topic, payload);
+    }
+
+    /**
+     * Metodo manejador que se invoca cuando Redis emite un mensaje en el canal.
      * Recibe el mensaje y lo despacha a los clientes conectados LOCALMENTE a este nodo.
      */
     public void handleRedisMessage(WebSocketMessagePayload message) {

@@ -74,7 +74,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("RECETAS", "receta", List.of("create", "read", "update", "delete"));
         seedModulo("COMPRAS", "compras", List.of("create", "read", "update", "delete"));
         seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
-        seedModulo("VENTAS", "ventas", List.of("create", "read", "update", "delete"));
+        seedModulo("DASHBOARD", "dashboard", List.of("read"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -84,14 +84,11 @@ public class InitializerSeeder implements CommandLineRunner {
         // 4. Asegurar Existencia de Usuario Maestro
         ensureAdminUser(superuser);
         
-        // 5. Roles Operativos Adicionales
-        Rol cajero = seedRol("CAJERO", "Personal encargado de cobros", 10);
+        // 5. Roles Operativos Adicionales (Sin permisos base por ahora)
+        seedRol("CAJERO", "Personal encargado de cobros", 10);
         seedRol("MESERO", "Personal de atención a clientes", 5);
         seedRol("COCINERO", "Personal de producción", 5);
         seedRol("BARTENDER", "Personal de bar", 5);
-
-        // 5.1 Sincronizar permisos para roles operativos
-        syncCajeroPermissions(cajero);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -150,8 +147,8 @@ public class InitializerSeeder implements CommandLineRunner {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
-            "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
-            "VENTAS"
+            "SECTORES", "MESAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
+            "DASHBOARD"
         );
         
         permisoRepository.findAll().forEach(p -> {
@@ -170,18 +167,9 @@ public class InitializerSeeder implements CommandLineRunner {
     }
 
     private void syncClientePermissions(Rol rol) {
-        // El CLIENTE no tiene permisos administrativos. 
+        // El CLIENTE no tiene permisos administrativos.
         // Su acceso se limita a lo que el controlador permita por @AuthenticationPrincipal (su propio perfil)
         // sin necesidad de autoridades globales.
-    }
-
-    private void syncCajeroPermissions(Rol rol) {
-        List<String> modulosCajero = List.of("VENTAS");
-        permisoRepository.findAll().forEach(p -> {
-            if (modulosCajero.contains(p.getModulo())) {
-                seedRolPermiso(rol, p);
-            }
-        });
     }
 
     private void seedRolPermiso(Rol rol, Permiso permiso) {

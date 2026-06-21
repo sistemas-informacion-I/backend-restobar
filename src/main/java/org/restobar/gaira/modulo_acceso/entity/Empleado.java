@@ -51,9 +51,8 @@ public class Empleado {
     // Relaciones
     @Builder.Default
     @OneToMany(mappedBy = "empleado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @ToString.Exclude
     private List<EmpleadoSucursal> empleadoSucursales = new ArrayList<>();
-
+    
     @PrePersist
     protected void onCreate() {
         if (fechaContratacion == null) {

@@ -1,7 +1,7 @@
 package org.restobar.gaira.modulo_operaciones.dto.sucursal;
 
-
-
+import java.math.BigDecimal;
+import java.util.List;
 import java.time.LocalTime;
 
 import lombok.Builder;
@@ -27,7 +27,9 @@ public class SucursalResponseDTO { // sin validaciones
     private Boolean activo;
     private Long idResponsable;
     private String nombreResponsable;
-    private java.util.List<EmpleadoDetalleDTO> empleados;
+    private BigDecimal latitud;
+    private BigDecimal longitud;
+    private List<EmpleadoDetalleDTO> empleados;
 
     @Getter
     @Setter

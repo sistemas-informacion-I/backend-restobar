@@ -1,5 +1,6 @@
 package org.restobar.gaira.modulo_acceso.controller.login;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.restobar.gaira.modulo_acceso.dto.login.LoginRequest;
@@ -7,6 +8,8 @@ import org.restobar.gaira.modulo_acceso.dto.login.LoginResponse;
 import org.restobar.gaira.modulo_acceso.dto.login.RefreshTokenRequest;
 import org.restobar.gaira.modulo_acceso.dto.login.SendCodeRequest;
 import org.restobar.gaira.modulo_acceso.dto.login.VerifyCodeRequest;
+import org.restobar.gaira.modulo_acceso.entity.Empleado;
+import org.restobar.gaira.modulo_acceso.repository.EmpleadoRepository;
 import org.restobar.gaira.modulo_acceso.service.login.LoginService;
 import org.restobar.gaira.security.userdetails.ApplicationUserPrincipal;
 import org.springframework.http.HttpStatus;
@@ -27,9 +30,11 @@ import jakarta.validation.Valid;
 public class LoginController {
 
     private final LoginService loginService;
+    private final EmpleadoRepository empleadoRepository;
 
-    public LoginController(LoginService loginService) {
+    public LoginController(LoginService loginService, EmpleadoRepository empleadoRepository) {
         this.loginService = loginService;
+        this.empleadoRepository = empleadoRepository;
     }
 
     @PostMapping
@@ -69,12 +74,32 @@ public class LoginController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return ResponseEntity.ok(Map.of(
-                "idUsuario", principal.getIdUsuario(),
-                "username", principal.getUsername(),
-                "email", principal.getEmail(),
-                "tipoUsuario", principal.getTipoUsuario(),
-                "sucursalId", principal.getSucursalId() != null ? principal.getSucursalId() : "",
-                "authorities", principal.getAuthorities().stream().map(a -> a.getAuthority()).toList()));
+        java.util.List<String> authorities = principal.getAuthorities().stream()
+                .map(a -> a.getAuthority()).toList();
+
+        // Exponer los roles (derivados de las authorities ROLE_*) para que el
+        // frontend pueda validar accesos por rol (p. ej. COCINERO/BARTENDER).
+        java.util.List<Map<String, Object>> roles = authorities.stream()
+                .filter(a -> a.startsWith("ROLE_"))
+                .map(a -> Map.<String, Object>of("nombre", a.substring("ROLE_".length())))
+                .toList();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("idUsuario", principal.getIdUsuario());
+        response.put("username", principal.getUsername());
+        response.put("email", principal.getEmail());
+        response.put("tipoUsuario", principal.getTipoUsuario());
+        response.put("sucursalId", principal.getSucursalId() != null ? principal.getSucursalId() : "");
+        response.put("authorities", authorities);
+        response.put("roles", roles);
+
+        Empleado empleado = empleadoRepository.findByUsuario_IdUsuario(principal.getIdUsuario()).orElse(null);
+        if (empleado != null) {
+            response.put("idEmpleado", empleado.getIdEmpleado());
+            response.put("firstName", empleado.getUsuario().getNombre());
+            response.put("lastName", empleado.getUsuario().getApellido());
+        }
+
+        return ResponseEntity.ok(response);
     }
 }
