@@ -11,6 +11,7 @@ import org.restobar.gaira.modulo_inventario.entity.StockSucursal;
 import org.restobar.gaira.modulo_inventario.mapper.lote.LoteMapper;
 import org.restobar.gaira.modulo_inventario.repository.LoteInventarioRepository;
 import org.restobar.gaira.modulo_inventario.repository.StockSucursalRepository;
+import org.restobar.gaira.modulo_inventario.service.alerta.AlertaInventarioService;
 import org.restobar.gaira.modulo_inventario.service.stock.StockSucursalService;
 import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
@@ -31,6 +32,7 @@ public class LoteInventarioService implements AuditableService<Long, Object> {
 
     private final StockSucursalRepository stockRepository;
     private final LoteInventarioRepository loteRepository;
+    private final AlertaInventarioService alertaService;
     private final LoteMapper loteMapper;
     private final StockSucursalService stockSucursalService;
 
@@ -68,7 +70,10 @@ public class LoteInventarioService implements AuditableService<Long, Object> {
 
         LoteInventario lote = loteMapper.toEntity(dto, stock);
         lote = loteRepository.save(lote);
-        stockSucursalService.recalcularStockDesdeLotes(stock.getIdStock());
+        StockSucursal actualizedStock = stockSucursalService.recalcularStockDesdeLotes(stock.getIdStock());
+        alertaService.resolverAlertasPorStock(actualizedStock);
+        alertaService.generarAlertaStockMinimoParaStock(actualizedStock);
+        alertaService.generarAlertaVencimientoProximoParaLote(lote);
 
         return loteMapper.toResponse(lote);
     }
@@ -81,7 +86,11 @@ public class LoteInventarioService implements AuditableService<Long, Object> {
 
         lote.setEstado(nuevoEstado);
         lote = loteRepository.save(lote);
-        stockSucursalService.recalcularStockDesdeLotes(lote.getStockSucursal().getIdStock());
+        StockSucursal actualizedStock = stockSucursalService.recalcularStockDesdeLotes(lote.getStockSucursal().getIdStock());
+        alertaService.resolverAlertasPorStock(actualizedStock);
+        alertaService.generarAlertaStockMinimoParaStock(actualizedStock);
+        alertaService.resolverAlertasPorLote(lote);
+        alertaService.generarAlertaVencimientoProximoParaLote(lote);
 
         return loteMapper.toResponse(lote);
     }

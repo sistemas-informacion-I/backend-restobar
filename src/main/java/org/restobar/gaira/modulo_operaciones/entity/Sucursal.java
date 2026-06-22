@@ -83,6 +83,10 @@ public class Sucursal {
     private String departamento;
 
     @Builder.Default
+    @Column(name = "dias_alerta_vencimiento")
+    private Integer diasAlertaVencimiento = 7;
+
+    @Builder.Default
     @Column(name = "estado_operativo", nullable = false, length = 20)
     private String estadoOperativo = "ACTIVO";
 
@@ -106,6 +110,9 @@ public class Sucursal {
         }
         if (activo == null) {
             activo = true;
+        }
+        if (diasAlertaVencimiento == null) {
+            diasAlertaVencimiento = 7;
         }
     }
 }
