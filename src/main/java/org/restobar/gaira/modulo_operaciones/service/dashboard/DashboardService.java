@@ -55,7 +55,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
 
         String cacheKey = buildCacheKey(sucursalId, "full", fechaInicio, fechaFin);
-        DashboardResponse cached = (DashboardResponse) redisTemplate.opsForValue().get(cacheKey);
+        DashboardResponse cached = cacheGet(cacheKey, DashboardResponse.class);
         if (cached != null) return cached;
 
         KpiDTO kpis = getKpi(fechaInicio, fechaFin, sucursalId);
@@ -74,7 +74,7 @@ public class DashboardService {
                 .employeeRanking(employeeRanking)
                 .build();
 
-        redisTemplate.opsForValue().set(cacheKey, response, CACHE_KPI_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, response, CACHE_KPI_TTL_MINUTES);
         return response;
     }
 
@@ -86,20 +86,22 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "kpi", fechaInicio, fechaFin);
 
-        KpiDTO cached = (KpiDTO) redisTemplate.opsForValue().get(cacheKey);
+        KpiDTO cached = cacheGet(cacheKey, KpiDTO.class);
         if (cached != null) return cached;
 
         LocalDateTime inicio = fechaInicio.atStartOfDay();
         LocalDateTime fin = fechaFin.atTime(LocalTime.MAX);
 
-        Object[] totals = notaVentaRepository.findKpiTotalsWithAverage(sucursalId, inicio, fin);
-        BigDecimal ventas = (BigDecimal) totals[0];
-        int transacciones = ((Number) totals[1]).intValue();
-        BigDecimal ticketPromedio = (BigDecimal) totals[2];
+        Object[] totalsRaw = notaVentaRepository.findKpiTotalsWithAverage(sucursalId, inicio, fin);
+        Object[] totals = unwrapRow(totalsRaw);
+        BigDecimal ventas = toBigDecimal(totals[0]);
+        int transacciones = toNumber(totals[1]).intValue();
+        BigDecimal ticketPromedio = toBigDecimal(totals[2]);
 
-        Object[] profitData = detalleNotaVentaRepository.findProfit(sucursalId, inicio, fin);
-        BigDecimal ganancia = (BigDecimal) profitData[0];
-        BigDecimal ingresos = (BigDecimal) profitData[1];
+        Object[] profitRaw = detalleNotaVentaRepository.findProfit(sucursalId, inicio, fin);
+        Object[] profitData = unwrapRow(profitRaw);
+        BigDecimal ganancia = toBigDecimal(profitData[0]);
+        BigDecimal ingresos = toBigDecimal(profitData[1]);
         BigDecimal margen = ingresos.compareTo(BigDecimal.ZERO) > 0
                 ? ganancia.multiply(BigDecimal.valueOf(100)).divide(ingresos, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -127,7 +129,7 @@ public class DashboardService {
                 .alertasStockCritico((int) stockCritico)
                 .build();
 
-        redisTemplate.opsForValue().set(cacheKey, kpi, CACHE_KPI_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, kpi, CACHE_KPI_TTL_MINUTES);
         return kpi;
     }
 
@@ -139,8 +141,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "sales-evolution", fechaInicio, fechaFin);
 
-        @SuppressWarnings("unchecked")
-        List<SalesPoint> cached = (List<SalesPoint>) redisTemplate.opsForValue().get(cacheKey);
+        List<SalesPoint> cached = cacheGetList(cacheKey, SalesPoint.class);
         if (cached != null) return cached;
 
         LocalDateTime inicio = fechaInicio.atStartOfDay();
@@ -148,15 +149,25 @@ public class DashboardService {
 
         List<Object[]> rows = notaVentaRepository.findSalesEvolution(sucursalId, inicio, fin);
         List<SalesPoint> result = new ArrayList<>();
-        for (Object[] row : rows) {
+        for (Object[] raw : rows) {
+            Object[] row = unwrapRow(raw);
+            java.time.LocalDate fecha;
+            Object dateVal = row[0];
+            if (dateVal instanceof java.sql.Date sqlDate) {
+                fecha = sqlDate.toLocalDate();
+            } else if (dateVal instanceof java.time.LocalDate ld) {
+                fecha = ld;
+            } else {
+                fecha = java.time.LocalDate.parse(dateVal.toString());
+            }
             result.add(SalesPoint.builder()
-                    .fecha(((java.sql.Date) row[0]).toLocalDate())
-                    .total((BigDecimal) row[1])
-                    .count(((Number) row[2]).intValue())
+                    .fecha(fecha)
+                    .total(toBigDecimal(row[1]))
+                    .count(toNumber(row[2]).intValue())
                     .build());
         }
 
-        redisTemplate.opsForValue().set(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES);
         return result;
     }
 
@@ -168,8 +179,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "sales-category", fechaInicio, fechaFin);
 
-        @SuppressWarnings("unchecked")
-        List<CategorySales> cached = (List<CategorySales>) redisTemplate.opsForValue().get(cacheKey);
+        List<CategorySales> cached = cacheGetList(cacheKey, CategorySales.class);
         if (cached != null) return cached;
 
         LocalDateTime inicio = fechaInicio.atStartOfDay();
@@ -179,8 +189,9 @@ public class DashboardService {
         BigDecimal totalGeneral = BigDecimal.ZERO;
         List<CategorySales> result = new ArrayList<>();
 
-        for (Object[] row : rows) {
-            BigDecimal total = (BigDecimal) row[1];
+        for (Object[] raw : rows) {
+            Object[] row = unwrapRow(raw);
+            BigDecimal total = toBigDecimal(row[1]);
             totalGeneral = totalGeneral.add(total);
             result.add(CategorySales.builder()
                     .categoria((String) row[0])
@@ -196,7 +207,7 @@ public class DashboardService {
             cs.setPorcentaje(pct);
         }
 
-        redisTemplate.opsForValue().set(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES);
         return result;
     }
 
@@ -205,7 +216,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "month-comparison", LocalDate.now(), LocalDate.now());
 
-        MonthComparison cached = (MonthComparison) redisTemplate.opsForValue().get(cacheKey);
+        MonthComparison cached = cacheGet(cacheKey, MonthComparison.class);
         if (cached != null) return cached;
 
         LocalDate hoy = LocalDate.now();
@@ -232,7 +243,7 @@ public class DashboardService {
                 .periodoAnterior(inicioMesAnterior.format(DateTimeFormatter.ofPattern("MMM yyyy")))
                 .build();
 
-        redisTemplate.opsForValue().set(cacheKey, mc, CACHE_HISTORIC_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, mc, CACHE_HISTORIC_TTL_MINUTES);
         return mc;
     }
 
@@ -244,8 +255,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "top-products", fechaInicio, fechaFin);
 
-        @SuppressWarnings("unchecked")
-        List<ProductRanking> cached = (List<ProductRanking>) redisTemplate.opsForValue().get(cacheKey);
+        List<ProductRanking> cached = cacheGetList(cacheKey, ProductRanking.class);
         if (cached != null) return cached;
 
         LocalDateTime inicio = fechaInicio.atStartOfDay();
@@ -254,18 +264,19 @@ public class DashboardService {
         List<Object[]> rows = detalleNotaVentaRepository.findTopProducts(sucursalId, inicio, fin);
         List<ProductRanking> result = new ArrayList<>();
         int count = 0;
-        for (Object[] row : rows) {
+        for (Object[] raw : rows) {
             if (count >= limit) break;
+            Object[] row = unwrapRow(raw);
             result.add(ProductRanking.builder()
-                    .idProducto(((Number) row[0]).longValue())
+                    .idProducto(toNumber(row[0]).longValue())
                     .nombre((String) row[1])
-                    .cantidadVendida(((Number) row[2]).intValue())
-                    .totalGenerado((BigDecimal) row[3])
+                    .cantidadVendida(toNumber(row[2]).intValue())
+                    .totalGenerado(toBigDecimal(row[3]))
                     .build());
             count++;
         }
 
-        redisTemplate.opsForValue().set(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES);
         return result;
     }
 
@@ -277,8 +288,7 @@ public class DashboardService {
         Long sucursalId = resolveSucursalId(idSucursal);
         String cacheKey = buildCacheKey(sucursalId, "employee-ranking", fechaInicio, fechaFin);
 
-        @SuppressWarnings("unchecked")
-        List<EmployeeRanking> cached = (List<EmployeeRanking>) redisTemplate.opsForValue().get(cacheKey);
+        List<EmployeeRanking> cached = cacheGetList(cacheKey, EmployeeRanking.class);
         if (cached != null) return cached;
 
         LocalDateTime inicio = fechaInicio.atStartOfDay();
@@ -286,17 +296,18 @@ public class DashboardService {
 
         List<Object[]> rows = notaVentaRepository.findEmployeeRanking(sucursalId, inicio, fin);
         List<EmployeeRanking> result = new ArrayList<>();
-        for (Object[] row : rows) {
+        for (Object[] raw : rows) {
+            Object[] row = unwrapRow(raw);
             result.add(EmployeeRanking.builder()
-                    .idEmpleado(((Number) row[0]).longValue())
+                    .idEmpleado(toNumber(row[0]).longValue())
                     .nombre((String) row[1])
                     .apellido((String) row[2])
-                    .totalVentas((BigDecimal) row[3])
-                    .numeroVentas(((Number) row[4]).intValue())
+                    .totalVentas(toBigDecimal(row[3]))
+                    .numeroVentas(toNumber(row[4]).intValue())
                     .build());
         }
 
-        redisTemplate.opsForValue().set(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES, TimeUnit.MINUTES);
+        cacheSet(cacheKey, result, CACHE_HISTORIC_TTL_MINUTES);
         return result;
     }
 
@@ -310,5 +321,51 @@ public class DashboardService {
     private String buildCacheKey(Long sucursalId, String type, LocalDate fechaInicio, LocalDate fechaFin) {
         String sufijo = sucursalId != null ? "sucursal:" + sucursalId : "global";
         return CACHE_PREFIX + sufijo + ":" + type + ":" + fechaInicio + ":" + fechaFin;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T cacheGet(String key, Class<T> type) {
+        try {
+            return (T) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.debug("Redis GET failed for key {}: {}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    private void cacheSet(String key, Object value, long ttlMinutes) {
+        try {
+            redisTemplate.opsForValue().set(key, value, ttlMinutes, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.debug("Redis SET failed for key {}: {}", key, e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> List<T> cacheGetList(String key, Class<T> elementType) {
+        try {
+            return (List<T>) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.debug("Redis GET list failed for key {}: {}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    private Object[] unwrapRow(Object[] row) {
+        if (row != null && row.length == 1 && row[0] instanceof Object[]) {
+            return (Object[]) row[0];
+        }
+        return row;
+    }
+
+    private BigDecimal toBigDecimal(Object val) {
+        if (val instanceof BigDecimal bd) return bd;
+        if (val instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        return BigDecimal.ZERO;
+    }
+
+    private Number toNumber(Object val) {
+        if (val instanceof Number n) return n;
+        return 0;
     }
 }
