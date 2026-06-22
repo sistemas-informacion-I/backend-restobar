@@ -153,6 +153,7 @@ public class NotaVentaMapper {
 
         Map<String, Object> response = new HashMap<>();
         response.put("idNotaVenta", notaVenta.getIdNotaVenta());
+        response.put("idSucursal", notaVenta.getSucursal() != null ? notaVenta.getSucursal().getIdSucursal() : null);
         response.put("numeroComanda", comanda != null ? comanda.getNumeroComanda() : null);
         response.put("idComanda", comanda != null ? comanda.getIdComanda() : null);
         response.put("fechaEmision", notaVenta.getFechaEmision());
