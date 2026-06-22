@@ -23,4 +23,11 @@ public interface StockSucursalRepository extends JpaRepository<StockSucursal, Lo
     List<StockSucursal> findActivosParaCosto(
             @Param("idSucursal") Long idSucursal,
             @Param("idsInventario") List<Long> idsInventario);
+
+    @Query("SELECT COUNT(ss) FROM StockSucursal ss WHERE ss.sucursal.idSucursal = :idSucursal " +
+           "AND ss.cantidad <= ss.cantidadMinima AND ss.activo = true")
+    long countStockCritico(@Param("idSucursal") Long idSucursal);
+
+    @Query("SELECT COUNT(ss) FROM StockSucursal ss WHERE ss.activo = true AND ss.cantidad <= ss.cantidadMinima")
+    long countStockCriticoGlobal();
 }

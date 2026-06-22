@@ -43,6 +43,7 @@ import org.restobar.gaira.modulo_operaciones.repository.SucursalRepository;
 import org.restobar.gaira.security.audit.annotation.Auditable;
 import org.restobar.gaira.security.audit.util.AuditableService;
 import org.restobar.gaira.modulo_electronico.repository.EntregaRepository;
+import org.restobar.gaira.shared.websocket.WebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,7 @@ public class NotaVentaService implements AuditableService<Long, Object> {
     private final PayPalMapper payPalMapper;
     private final EntregaRepository entregaRepository;
     private final CajaService cajaService;
+    private final WebSocketService webSocketService;
 
     @Value("${paypal.return-url:http://localhost:3000/api/paypal/success}")
     private String paypalReturnUrl;
@@ -499,6 +501,14 @@ public class NotaVentaService implements AuditableService<Long, Object> {
                 var mesa = comanda.getMesa();
                 mesa.setDisponibilidad("DISPONIBLE");
                 mesaRepository.save(mesa);
+            }
+
+            // Notificar al dashboard para actualizar KPIs en tiempo real
+            try {
+                webSocketService.emitirEventoSucursal(idSucursal, "dashboard/update",
+                        java.util.Map.of("type", "kpi-refresh", "idSucursal", idSucursal));
+            } catch (Exception e) {
+                log.warn("Error al emitir evento WebSocket de dashboard", e);
             }
 
             response.put("estado", "PAGADA");

@@ -49,4 +49,10 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("horaInicio") LocalTime horaInicio,
             @Param("horaFin") LocalTime horaFin,
             @Param("estadosActivos") Collection<String> estadosActivos);
+
+    @Query("SELECT COUNT(r) FROM Reserva r WHERE r.fechaReserva = :fecha " +
+           "AND (:idSucursal IS NULL OR r.idSucursal = :idSucursal) " +
+           "AND r.estado NOT IN ('CANCELADA', 'NO_ASISTIO')")
+    long countBySucursalAndFecha(@Param("idSucursal") Long idSucursal,
+                                  @Param("fecha") LocalDate fecha);
 }

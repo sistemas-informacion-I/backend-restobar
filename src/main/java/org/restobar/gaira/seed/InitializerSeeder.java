@@ -78,6 +78,7 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("ENTREGAS", "entregas", List.of("create", "read", "update"));
         // CU22 – Gestionar Caja: create=abrir, read=consultar/arqueo, update=movimientos/cierre
         seedModulo("CAJA", "caja", List.of("create", "read", "update"));
+        seedModulo("DASHBOARD", "dashboard", List.of("read"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -87,21 +88,11 @@ public class InitializerSeeder implements CommandLineRunner {
         // 4. Asegurar Existencia de Usuario Maestro
         ensureAdminUser(superuser);
         
-        // 5. Roles Operativos Adicionales
-        Rol cajero = seedRol("CAJERO", "Personal encargado de cobros", 10);
-        Rol mesero = seedRol("MESERO", "Personal de atención a clientes", 5);
-        Rol cocinero = seedRol("COCINERO", "Personal de producción", 5);
-        Rol bartender = seedRol("BARTENDER", "Personal de bar", 5);
-        Rol repartidor = seedRol("REPARTIDOR", "Personal de reparto y entregas a domicilio", 5);
-
-        // Permisos operativos del personal (comandas / preparación) - CU14
-        syncOperationalStaffPermissions(mesero, cajero, cocinero, bartender);
-
-        // Permisos de ventas presenciales para el cajero - CU15
-        syncCajeroPermissions(cajero);
-
-        // Permisos de entregas para repartidores - CU30
-        syncRepartidorPermissions(repartidor);
+        // 5. Roles Operativos Adicionales (Sin permisos base por ahora)
+        seedRol("CAJERO", "Personal encargado de cobros", 10);
+        seedRol("MESERO", "Personal de atención a clientes", 5);
+        seedRol("COCINERO", "Personal de producción", 5);
+        seedRol("BARTENDER", "Personal de bar", 5);
 
         // 6. Métodos de Pago
         seedMetodosPago();
@@ -161,7 +152,7 @@ public class InitializerSeeder implements CommandLineRunner {
         List<String> modulosGestionable = List.of(
             "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES",
             "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
-            "VENTAS", "ENTREGAS", "CAJA"
+            "VENTAS", "ENTREGAS", "CAJA", "DASHBOARD"
         );
         
         permisoRepository.findAll().forEach(p -> {

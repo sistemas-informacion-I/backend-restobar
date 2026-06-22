@@ -1,6 +1,8 @@
 package org.restobar.gaira.modulo_comercial.repository.notaVenta;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,4 +35,49 @@ public interface NotaVentaRepository extends JpaRepository<NotaVenta, Long> {
 
     @Query("SELECT n FROM NotaVenta n WHERE n.cliente.usuario.username = :username ORDER BY n.fechaEmision DESC")
     List<NotaVenta> findByClienteUsername(@Param("username") String username);
+
+    @Query("SELECT COALESCE(SUM(n.total), 0), COUNT(n) FROM NotaVenta n " +
+           "WHERE n.estado = 'PAGADA' " +
+           "AND (:idSucursal IS NULL OR n.sucursal.id = :idSucursal) " +
+           "AND n.fechaEmision BETWEEN :inicio AND :fin")
+    Object[] findKpiTotals(@Param("idSucursal") Long idSucursal,
+                           @Param("inicio") LocalDateTime inicio,
+                           @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT FUNCTION('DATE', n.fechaEmision), COALESCE(SUM(n.total), 0), COUNT(n) " +
+           "FROM NotaVenta n WHERE n.estado = 'PAGADA' " +
+           "AND (:idSucursal IS NULL OR n.sucursal.id = :idSucursal) " +
+           "AND n.fechaEmision BETWEEN :inicio AND :fin " +
+           "GROUP BY FUNCTION('DATE', n.fechaEmision) ORDER BY FUNCTION('DATE', n.fechaEmision)")
+    List<Object[]> findSalesEvolution(@Param("idSucursal") Long idSucursal,
+                                      @Param("inicio") LocalDateTime inicio,
+                                      @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COALESCE(SUM(n.total), 0), COUNT(n), " +
+           "COALESCE(SUM(n.total) / NULLIF(COUNT(n), 0), 0) " +
+           "FROM NotaVenta n WHERE n.estado = 'PAGADA' " +
+           "AND (:idSucursal IS NULL OR n.sucursal.id = :idSucursal) " +
+           "AND n.fechaEmision BETWEEN :inicio AND :fin")
+    Object[] findKpiTotalsWithAverage(@Param("idSucursal") Long idSucursal,
+                                      @Param("inicio") LocalDateTime inicio,
+                                      @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT e.idEmpleado, u.nombre, u.apellido, COALESCE(SUM(n.total), 0), COUNT(n) " +
+           "FROM NotaVenta n JOIN n.empleado e JOIN e.usuario u " +
+           "WHERE n.estado = 'PAGADA' " +
+           "AND (:idSucursal IS NULL OR n.sucursal.id = :idSucursal) " +
+           "AND n.fechaEmision BETWEEN :inicio AND :fin " +
+           "GROUP BY e.idEmpleado, u.nombre, u.apellido " +
+           "ORDER BY COALESCE(SUM(n.total), 0) DESC")
+    List<Object[]> findEmployeeRanking(@Param("idSucursal") Long idSucursal,
+                                       @Param("inicio") LocalDateTime inicio,
+                                       @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COALESCE(SUM(n.total), 0) FROM NotaVenta n " +
+           "WHERE n.estado = 'PAGADA' " +
+           "AND (:idSucursal IS NULL OR n.sucursal.id = :idSucursal) " +
+           "AND n.fechaEmision BETWEEN :inicio AND :fin")
+    BigDecimal sumTotalBySucursalAndFecha(@Param("idSucursal") Long idSucursal,
+                                          @Param("inicio") LocalDateTime inicio,
+                                          @Param("fin") LocalDateTime fin);
 }
