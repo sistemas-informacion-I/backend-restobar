@@ -76,6 +76,8 @@ public class InitializerSeeder implements CommandLineRunner {
         seedModulo("CATALOGO", "catalogo", List.of("read", "update"));
         seedModulo("VENTAS", "ventas", List.of("create", "read", "update", "delete"));
         seedModulo("ENTREGAS", "entregas", List.of("create", "read", "update"));
+        // CU22 – Gestionar Caja: create=abrir, read=consultar/arqueo, update=movimientos/cierre
+        seedModulo("CAJA", "caja", List.of("create", "read", "update"));
 
         // 3. Sincronizar Permisos a Roles
         syncSuperUserPermissions(superuser);
@@ -157,9 +159,9 @@ public class InitializerSeeder implements CommandLineRunner {
     private void syncAdminPermissions(Rol rol) {
         // Módulos que un ADMIN puede gestionar completamente (Staff, Stock, Clientes)
         List<String> modulosGestionable = List.of(
-            "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES", 
+            "CATEGORIAS", "INVENTARIO", "EMPLEADOS", "CLIENTES", "PROVEEDORES",
             "SECTORES", "MESAS", "COMANDAS", "COMPRAS", "PRODUCTOS", "RECETAS", "CATALOGO",
-            "VENTAS", "ENTREGAS"
+            "VENTAS", "ENTREGAS", "CAJA"
         );
         
         permisoRepository.findAll().forEach(p -> {
@@ -216,8 +218,9 @@ public class InitializerSeeder implements CommandLineRunner {
     }
 
     private void syncCajeroPermissions(Rol rol) {
-        // Permisos de ventas presenciales (CU15): el cajero gestiona el módulo VENTAS.
-        List<String> modulosCajero = List.of("VENTAS");
+        // Permisos de ventas presenciales (CU15) y gestión de caja (CU22):
+        // el cajero gestiona los módulos VENTAS y CAJA por completo.
+        List<String> modulosCajero = List.of("VENTAS", "CAJA");
         permisoRepository.findAll().forEach(p -> {
             if (modulosCajero.contains(p.getModulo())) {
                 seedRolPermiso(rol, p);

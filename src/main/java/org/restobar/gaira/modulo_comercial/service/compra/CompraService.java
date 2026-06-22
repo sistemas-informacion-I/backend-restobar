@@ -14,8 +14,10 @@ import org.restobar.gaira.modulo_comercial.dto.detalleCompra.DetalleCompraReques
 import org.restobar.gaira.modulo_comercial.entity.Compra;
 import org.restobar.gaira.modulo_comercial.entity.Compra.EstadoPago;
 import org.restobar.gaira.modulo_comercial.entity.DetalleCompra;
+import org.restobar.gaira.modulo_comercial.entity.MovimientoCaja;
 import org.restobar.gaira.modulo_comercial.entity.Proveedor;
 import org.restobar.gaira.modulo_comercial.mapper.compra.CompraMapper;
+import org.restobar.gaira.modulo_comercial.service.caja.CajaService;
 import org.restobar.gaira.modulo_comercial.mapper.detalleCompra.DetalleCompraMapper;
 import org.restobar.gaira.modulo_comercial.repository.ProveedorRepository;
 import org.restobar.gaira.modulo_comercial.repository.compra.CompraRepository;
@@ -44,6 +46,7 @@ public class CompraService implements AuditableService<Long, Object> {
     private final StockSucursalService stockSucursalService;
     private final CompraMapper compraMapper;
     private final DetalleCompraMapper detalleCompraMapper;
+    private final CajaService cajaService;
 
     // ─── AuditableService ────────────────────────────────────────────────────
 
@@ -198,7 +201,7 @@ public class CompraService implements AuditableService<Long, Object> {
         compra.setEstadoPago(nuevoEstado);
         compra = compraRepository.save(compra);
 
-        if (!fuePagado && ahoraPagado && compra.getDetalles() != null) {
+        if (!fuePagado && ahoraPagado && compra.getDetalles() != null && !compra.getDetalles().isEmpty()) {
             for (DetalleCompra detalle : compra.getDetalles()) {
                 StockAjusteRequest ajuste = new StockAjusteRequest();
                 ajuste.setIdInventario(detalle.getStock().getInventario().getIdInventario());
@@ -207,6 +210,18 @@ public class CompraService implements AuditableService<Long, Object> {
                 ajuste.setFechaIngreso(compra.getFechaCompra());
                 stockSucursalService.ajustarStock(detalle.getStock().getIdStock(), ajuste);
             }
+
+            // CU22 (Caja): pagar una compra genera un EGRESO automático en la caja
+            // ABIERTA de la sucursal (deducida del stock comprado). Validación estricta:
+            // si no hay caja abierta, el pago se rechaza y se revierte toda la operación.
+            Long idSucursal = compra.getDetalles().get(0).getStock().getSucursal().getIdSucursal();
+            cajaService.registrarMovimientoAutomatico(
+                    idSucursal,
+                    MovimientoCaja.Tipo.EGRESO,
+                    MovimientoCaja.Concepto.COMPRA,
+                    compra.getTotal(),
+                    "Compra - Factura " + compra.getNroFactura(),
+                    compra.getIdCompra());
         }
 
         return compraMapper.toResponse(compra);
