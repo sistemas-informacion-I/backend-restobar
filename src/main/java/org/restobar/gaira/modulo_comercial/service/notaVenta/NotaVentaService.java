@@ -368,7 +368,9 @@ public class NotaVentaService implements AuditableService<Long, Object> {
             BigDecimal descuentoFijo,
             BigDecimal propinaPorcentual,
             BigDecimal propinaFija,
-            String observaciones) {
+            String observaciones,
+            String returnUrl,
+            String cancelUrl) {
 
         Comanda comanda = comandaRepository.findById(idComanda)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -467,8 +469,8 @@ public class NotaVentaService implements AuditableService<Long, Object> {
                     "USD",
                     "Venta presencial - " + comanda.getNumeroComanda(),
                     paypalItems,
-                    paypalReturnUrl,
-                    paypalCancelUrl,
+                    returnUrl != null ? returnUrl : paypalReturnUrl,
+                    cancelUrl != null ? cancelUrl : paypalCancelUrl,
                     null, null, null, null, nit, null, null, null, null, null);
 
             PayPalCreateOrderResponse paypalResponse = payPalGatewayService.createOrder(paypalRequest);

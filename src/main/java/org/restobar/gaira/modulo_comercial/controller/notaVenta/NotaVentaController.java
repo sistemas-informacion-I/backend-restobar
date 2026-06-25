@@ -98,12 +98,14 @@ public class NotaVentaController {
         BigDecimal propinaFija = new BigDecimal(
                 body.getOrDefault("propinaFija", "0").toString());
         String observaciones = (String) body.getOrDefault("observaciones", null);
+        String returnUrl = (String) body.getOrDefault("returnUrl", null);
+        String cancelUrl = (String) body.getOrDefault("cancelUrl", null);
 
         Map<String, Object> result = notaVentaService.crearVentaPresencial(
                 idComanda, idMetodoPago, idCliente, nit,
                 descuentoPorcentual, descuentoFijo,
                 propinaPorcentual, propinaFija,
-                observaciones);
+                observaciones, returnUrl, cancelUrl);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
