@@ -40,6 +40,7 @@ public class AlertaInventarioService implements AuditableService<Long, Object> {
     private final LoteInventarioRepository loteRepository;
     private final AlertaInventarioMapper mapper;
     private final SecurityUtils securityUtils;
+    private boolean alertasEnabled = false;
 
     private static final List<EstadoAlerta> ALERTAS_ACTIVAS = List.of(EstadoAlerta.NO_LEIDA, EstadoAlerta.LEIDA);
     private static final int DEFAULT_DIAS_AVISO = 7;
@@ -106,6 +107,12 @@ public class AlertaInventarioService implements AuditableService<Long, Object> {
     @Transactional
     @Scheduled(fixedDelayString = "${app.inventory.alerts.fixed-delay:86400000}")
     public void generarYResolverAlertasProgramadas() {
+        if (!alertasEnabled) {
+        // Opcional: log para saber que está desactivado
+        // log.info("Generación de alertas desactivada");
+            return;
+        }
+        
         generarAlertasAutomaticas();
         resolverAlertasPendientes();
     }
