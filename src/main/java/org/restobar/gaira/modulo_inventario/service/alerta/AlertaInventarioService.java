@@ -104,7 +104,7 @@ public class AlertaInventarioService implements AuditableService<Long, Object> {
     }
 
     @Transactional
-    @Scheduled(fixedDelayString = "${app.inventory.alerts.fixed-delay:60000}")
+    @Scheduled(fixedDelayString = "${app.inventory.alerts.fixed-delay:86400000}")
     public void generarYResolverAlertasProgramadas() {
         generarAlertasAutomaticas();
         resolverAlertasPendientes();
